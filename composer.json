@@ -1,0 +1,13 @@
+{
+  "name": "your-handle/bga-dev-skill",
+  "description": "CC skill and testing harness for BoardGameArena game development",
+  "require-dev": {
+    "phpunit/phpunit": "^10.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "BgaHarness\\": "harness/php/",
+      "BgaExample\\": "harness/example/"
+    }
+  }
+}
