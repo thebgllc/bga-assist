@@ -1,87 +1,143 @@
 # Database Patterns
 
-## 1) Deal cards from deck to hand
+Use only the database vocabulary implemented in the harness. Do not use raw PDO in game classes.
 
-Raw SQL:
-```sql
-UPDATE card
-SET card_location = 'hand', card_location_arg = 1
-WHERE card_location = 'deck'
-LIMIT 3;
-```
+## Method Vocabulary
 
-PHP:
+Use these methods exactly:
+
+- `DbQuery(string $sql): void`
+- `getCollectionFromDB(string $sql, bool $bUniqueValue = false): array`
+- `getObjectFromDB(string $sql): ?array`
+- `getUniqueValueFromDB(string $sql): mixed`
+- `getIntFromDB(string $sql): int`
+
+## Pattern: Write with DbQuery
+
+Use `DbQuery` for INSERT/UPDATE/DELETE and DDL.
+
 ```php
-$this->DbQuery("UPDATE card SET card_location='hand', card_location_arg=1 WHERE card_location='deck' LIMIT 3");
+$this->DbQuery(
+    "CREATE TABLE IF NOT EXISTS card (" .
+    "card_id INTEGER PRIMARY KEY, " .
+    "card_type TEXT, " .
+    "card_number INTEGER, " .
+    "card_shading TEXT, " .
+    "card_location TEXT, " .
+    "card_location_arg INTEGER)"
+);
 ```
 
-## 2) Move one card between locations
-
-Raw SQL:
-```sql
-UPDATE card
-SET card_location = 'discard', card_location_arg = 0
-WHERE card_id = 42;
-```
-
-PHP:
 ```php
-$this->DbQuery("UPDATE card SET card_location='discard', card_location_arg=0 WHERE card_id=42");
+$this->DbQuery("UPDATE card SET card_location = 'discard' WHERE card_id = " . (int) $cardId);
 ```
 
-## 3) Increment player score
+## Pattern: Read many rows
 
-Raw SQL:
-```sql
-UPDATE player
-SET player_score = player_score + 1
-WHERE player_id = 1;
-```
+Use `getCollectionFromDB` for list queries.
 
-PHP:
 ```php
-$this->DbQuery("UPDATE player SET player_score = player_score + 1 WHERE player_id = 1");
+$cards = $this->getCollectionFromDB(
+    "SELECT card_id, card_type, card_number, card_shading FROM card WHERE card_location = 'deck' ORDER BY card_id LIMIT 3"
+);
 ```
 
-## 4) Get all cards in a location
+If you need key => value shape and query returns two columns, use `bUniqueValue = true`.
 
-Raw SQL:
-```sql
-SELECT card_id, card_type, card_location_arg
-FROM card
-WHERE card_location = 'hand' AND card_location_arg = 1;
-```
-
-PHP:
 ```php
-$cards = $this->getCollectionFromDB("SELECT card_id, card_type, card_location_arg FROM card WHERE card_location='hand' AND card_location_arg=1");
+$counts = $this->getCollectionFromDB(
+    "SELECT card_location_arg, COUNT(*) FROM card WHERE card_location = 'hand' GROUP BY card_location_arg",
+    true
+);
 ```
 
-## 5) Get a specific player's hand count
+## Pattern: Read one row
 
-Raw SQL:
-```sql
-SELECT COUNT(*)
-FROM card
-WHERE card_location = 'hand' AND card_location_arg = 1;
-```
+Use `getObjectFromDB` when one row is expected.
 
-PHP:
 ```php
-$count = (int) $this->getUniqueValueFromDB("SELECT COUNT(*) FROM card WHERE card_location='hand' AND card_location_arg=1");
+$row = $this->getObjectFromDB('SELECT * FROM card WHERE card_id = ' . (int) $cardId);
+if ($row === null) {
+    $this->throwUserError('invalidSet');
+}
 ```
 
-## 6) Check if player has a specific card
+## Pattern: Read one scalar
 
-Raw SQL:
-```sql
-SELECT card_id
-FROM card
-WHERE card_id = 42 AND card_location = 'hand' AND card_location_arg = 1;
-```
+Use `getUniqueValueFromDB` for scalar values and cast explicitly when needed.
 
-PHP:
 ```php
-$card = $this->getObjectFromDB("SELECT card_id FROM card WHERE card_id=42 AND card_location='hand' AND card_location_arg=1");
-$hasCard = $card !== null;
+$score = (int) $this->getUniqueValueFromDB('SELECT player_score FROM player WHERE player_id = ' . $playerId);
+```
+
+Use `getIntFromDB` for count/int-only reads.
+
+```php
+$remaining = $this->getIntFromDB("SELECT COUNT(*) FROM card WHERE card_location = 'deck'");
+```
+
+## Pattern: Dealing cards from deck to hand
+
+```php
+$cardsToDeal = $this->getCollectionFromDB(
+    "SELECT card_id FROM card WHERE card_location = 'deck' ORDER BY card_id LIMIT 3"
+);
+
+foreach ($cardsToDeal as $card) {
+    $this->DbQuery(sprintf(
+        "UPDATE card SET card_location = 'hand', card_location_arg = %d WHERE card_id = %d",
+        $playerId,
+        (int) $card['card_id']
+    ));
+}
+```
+
+## Deck Component Methods (Harness)
+
+In this harness, deck usage is intentionally minimal:
+
+- `createDeck(string $deckId): BgaDeckStub`
+- `BgaDeckStub::addCard(array $card): void`
+- `BgaDeckStub::count(): int`
+- `BgaDeckStub::getDeckId(): string`
+
+Use this stub only for in-memory deck behavior in tests or simplified examples.
+
+## Numeric Cast Pattern
+
+DB values can arrive as strings. Cast numeric fields before arithmetic/comparison.
+
+```php
+$players = $this->getCollectionFromDB("SELECT player_id id, player_score score FROM player");
+foreach ($players as $id => $player) {
+    foreach ($player as $key => $value) {
+        if (preg_match('/^-?\\d+$/', (string) $value)) {
+            $players[$id][$key] = (int) $value;
+        }
+    }
+}
+```
+
+## SQL Injection Warning
+
+Never concatenate unsanitized user input into SQL strings.
+
+Rules:
+- Cast numeric IDs with `(int)` before interpolation.
+- Validate string inputs against a known allow-list before interpolation.
+- If a freeform string must be interpolated, sanitize first (`addslashes`) and document why.
+
+Bad:
+
+```php
+$this->getCollectionFromDB("SELECT * FROM card WHERE card_type = '$type'");
+```
+
+Good:
+
+```php
+if (!in_array($type, ['red', 'green', 'blue'], true)) {
+    $this->throwUserError('invalidType');
+}
+$this->getCollectionFromDB("SELECT * FROM card WHERE card_type = '$type'");
 ```

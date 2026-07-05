@@ -1,106 +1,82 @@
-# BGA Scaffold Templates
+# Scaffold Templates (Modern Framework)
 
-## gamename.game.php
+Generate modern-framework structure first. Do not scaffold legacy layout by default.
 
-```php
-class game_name extends Table
-{
-    public function __construct()
-    {
-        parent::__construct();
-        self::initGameStateLabels([]);
-    }
+Legacy framework exists, but its file shape differs; consult official BGA docs when targeting legacy projects.
 
-    protected function setupNewGame($players, $options = [])
-    {
-        // setup logic
-    }
-}
+## Required Structure
+
+```text
+modules/
+  php/
+    Game.php
+    States/
+      <StateName>.php
+    Managers/
+    Models/
+  js/
+    Game.js
+    states/
+      <StateName>.js
+  templates/
 ```
 
-## gamename.action.php
+## Required Files and Responsibilities
 
-```php
-class action_game_name extends APP_GameAction
-{
-    public function playCard()
-    {
-        self::setAjaxMode();
-        $cardId = (int) self::getArg('card_id', AT_int, true);
-        $this->game->action_playCard($cardId);
-        self::ajaxResponse();
-    }
-}
-```
+- `modules/php/Game.php`
+  - Main game class
+  - wiring of managers/models/states
+  - high-level actions and state entry points
+- `modules/php/States/*.php`
+  - one class per complex state
+  - state-specific action validation and transitions
+- `modules/php/Managers/*.php`
+  - data access and domain operations
+- `modules/php/Models/*.php`
+  - value objects/DTO-style helpers
+- `modules/js/Game.js`
+  - export class Game
+  - state registration
+  - notification setup
+  - UI orchestration
+- `modules/js/states/*.js`
+  - frontend behavior per game state
+  - `onEnteringState`, `onLeavingState`, `onPlayerActivationChange`
 
-## gamename.view.php
-
-```php
-class view_game_name_game_name extends game_view
-{
-    function getGameName()
-    {
-        return 'game_name';
-    }
-
-    function build_page($viewArgs)
-    {
-        // page setup
-    }
-}
-```
-
-## gamename.js
+## Modern Game.js Shape
 
 ```javascript
-define(['dojo', 'dojo/_base/declare', 'ebg/core/gamegui'], function(dojo, declare) {
-  return declare('bgagame.game_name', ebg.core.gamegui, {
-    setup: function(gamedatas) {
-      this.gamedatas = gamedatas;
-      this.setupNotifications();
-    },
+export class Game {
+  constructor(bga) {
+    this.bga = bga;
+    // register state handlers
+    // bga.states.register('stateName', new SomeState(this, bga));
+  }
 
-    setupNotifications: function() {
-      dojo.subscribe('cardPlayed', this, 'notif_cardPlayed');
-    },
-
-    notif_cardPlayed: function(notif) {}
-  });
-});
+  setup(gamedatas) {
+    this.gamedatas = gamedatas;
+    this.bga.notifications.setupPromiseNotifications();
+  }
+}
 ```
 
-## states.inc.php
+## PHP Action Flow Template
 
-```php
-$machinestates = [
-  1 => [
-    'name' => 'gameSetup',
-    'type' => 'manager',
-    'action' => 'stGameSetup',
-    'transitions' => ['' => 2],
-  ],
-  2 => [
-    'name' => 'playerTurn',
-    'type' => 'activeplayer',
-    'description' => clienttranslate('${actplayer} must play a card'),
-    'possibleactions' => ['playCard'],
-    'transitions' => ['nextPlayer' => 2, 'endGame' => 99],
-  ],
-  99 => [
-    'name' => 'gameEnd',
-    'type' => 'manager',
-    'action' => 'stGameEnd',
-    'args' => 'argGameEnd',
-  ],
-];
-```
+Use this order in server action methods:
 
-## dbmodel.sql
+1. `checkAction(...)`
+2. validate arguments
+3. read DB state
+4. apply domain rule
+5. write DB
+6. notify
+7. transition
 
-```sql
-CREATE TABLE IF NOT EXISTS `player` (
-  `player_id` int(10) unsigned NOT NULL,
-  `player_score` int(11) NOT NULL DEFAULT '0',
-  PRIMARY KEY (`player_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-```
+## Test Scaffold Requirement
+
+For each gameplay action, create corresponding PHPUnit tests using `BgaGameTestCase` fluent style:
+
+- happy path
+- invalid input path
+- wrong-player path
+- transition path
