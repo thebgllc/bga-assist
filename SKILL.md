@@ -37,7 +37,16 @@ These are enforced by implemented harness behavior and passing example tests:
 - Do not use raw PDO directly in game classes.
 - Do not use superglobals in action logic.
 - Do not invent framework methods that are not present in the harness.
+- Never open your own DB transaction. BGA wraps each action in a transaction and rolls back on any thrown exception — issuing `START TRANSACTION` implicitly commits it. To abort a half-applied action, just `throw`. (See skills/database-patterns.md → "Transaction Model".)
+- Trust nothing from the client. Re-derive the legal state from the DB and re-validate the entire submission server-side, even when the client staged and pre-checked it.
+- Deal/move records atomically (single `UPDATE ... ORDER BY RAND() LIMIT n`) rather than SELECT-then-UPDATE; and cast DB values (`(int)`) before arithmetic.
 
+Modern-framework state rules (when §2 detects modern style — see skills/state-machine.md → "Modern Framework"):
+
+- One class per state in `modules/php/States/`; transitions are the returned `State::class` (or `99`). Do not use `possibleactions`/`checkAction`/`$machinestates` — those are legacy-only, and mixing versions is forbidden (§2).
+- Every `ACTIVE_PLAYER`/`MULTIPLE_ACTIVE_PLAYER` state must define a `zombie($playerId)` that takes the minimal legal move, or abandoned tables stall.
+- `getArgs()` is broadcast to all clients and gets no active-player id — never return a player's hand or other hidden info from it. Private data flows via `getAllDatas()` + `notify->player()`.
+average 
 ## 4) PHP Server - Common Patterns
 Use these concrete patterns from the implemented sample game and harness:
 

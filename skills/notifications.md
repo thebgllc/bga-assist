@@ -252,6 +252,26 @@ clear which keys are for the log vs which are for UI updates.
 
 ---
 
+## Private State: notify->player AND keep it out of getArgs()
+
+Two separate channels can leak a player's hidden info to opponents; guard both:
+
+1. **Real-time updates** — send private data with `notify->player($pid, ...)`, never `notify->all`.
+2. **State args** — a modern state's `getArgs()` return value is **broadcast to every client**, and it receives no active-player id. Never put a specific player's hand (or any hidden info) there. Read `getActivePlayerId()` only for public facts; private data reaches the player via `getAllDatas()` (per-player) + `notify->player()`.
+
+```php
+// ❌ Leaks the active player's hand to everyone
+public function getArgs(): array {
+    return ['hand' => $this->game->getCardsInHand($this->game->getActivePlayerId())];
+}
+// ✅ Only public facts in getArgs; the hand is private
+public function getArgs(): array {
+    return ['melds' => $this->game->getMeldsWithCards()];
+}
+```
+
+See `state-machine.md` → "`getArgs()` Is Broadcast".
+
 ## What notify->all vs notify->player Sends
 
 ```php

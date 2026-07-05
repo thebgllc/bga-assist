@@ -92,6 +92,48 @@ foreach ($cardsToDeal as $card) {
 }
 ```
 
+## Pattern: Atomic deal (avoid SELECT-then-UPDATE races)
+
+A separate `SELECT` then `UPDATE` opens a gap where two players can be dealt the same cards. When you don't need the drawn ids in PHP, deal in **one statement** so the selection and the move are atomic:
+
+```php
+// Deal HAND_SIZE random cards to one player, atomically.
+$this->DbQuery(
+    "UPDATE card
+     SET card_location = 'hand', card_location_arg = $playerId
+     WHERE card_location = 'deck'
+     ORDER BY RAND()
+     LIMIT " . self::HAND_SIZE
+);
+```
+
+Drawing a single card where you *do* need the row: `SELECT ... ORDER BY RAND() LIMIT 1`, then `UPDATE ... WHERE card_id = $id`. This is safe because the whole action runs inside one transaction (below) — no other action interleaves.
+
+## Transaction Model: Don't Wrap Actions Yourself
+
+BGA already wraps **every player action in a DB transaction** and rolls back all its mutations if any exception is thrown. Consequences:
+
+- **Never add `START TRANSACTION` / `BEGIN` in game logic.** Issuing one *implicitly commits* the framework's outer transaction, defeating the automatic rollback.
+- To abort a partially-applied action, just `throw` (a `UserException` for player-facing failures). Every `DbQuery` already run in that action rolls back cleanly — records can't get stuck in an intermediate location.
+- This is what makes "fail loud" safe: on a should-never-happen condition, throw rather than silently building bad state.
+
+```php
+// Rebuild the whole table from a validated proposal. No manual transaction —
+// if any DbQuery below throws, the limbo UPDATE, the DELETE, and partial
+// INSERTs all roll back together.
+$this->DbQuery("UPDATE card SET card_location='limbo' WHERE card_id IN ($tableIds)");
+$this->DbQuery('DELETE FROM meld');
+foreach ($proposedMelds as $spec) {
+    $data = $tableCards[$cid] ?? $handCards[$cid] ?? null;
+    if (!$data) {
+        // Validation already guaranteed this exists; fail loud (and roll back)
+        // rather than build a meld silently missing cards.
+        throw new UserException(clienttranslate('Internal error: card not found'));
+    }
+    // ... INSERT meld, UPDATE card locations ...
+}
+```
+
 ## Deck Component Methods (Harness)
 
 In this harness, deck usage is intentionally minimal:

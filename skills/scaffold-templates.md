@@ -36,12 +36,13 @@ modules/
   - value objects/DTO-style helpers
 - `modules/js/Game.js`
   - export class Game
-  - state registration
   - notification setup
-  - UI orchestration
-- `modules/js/states/*.js`
-  - frontend behavior per game state
+  - UI orchestration, and (for small/medium games) the state UI itself via the
+    class's own `onEnteringState(args, isCurrentPlayerActive)` / `onLeavingState`
+- `modules/js/states/*.js` (optional — only for larger games)
+  - split frontend behavior into per-state handlers when Game.js gets unwieldy
   - `onEnteringState`, `onLeavingState`, `onPlayerActivationChange`
+  - a game like RummyTime keeps all of this inside Game.js and does not split
 
 ## Modern Game.js Shape
 
@@ -49,20 +50,35 @@ modules/
 export class Game {
   constructor(bga) {
     this.bga = bga;
-    // register state handlers
-    // bga.states.register('stateName', new SomeState(this, bga));
   }
 
   setup(gamedatas) {
     this.gamedatas = gamedatas;
     this.bga.notifications.setupPromiseNotifications();
   }
+
+  // Per-state UI hooks live on the class itself; the framework calls the one
+  // matching the current state. (Larger games may instead delegate to separate
+  // handler objects in modules/js/states/*.js.)
+  onEnteringState(args, isCurrentPlayerActive) { /* render for this state */ }
+  onLeavingState() { /* tear down */ }
 }
 ```
 
 ## PHP Action Flow Template
 
-Use this order in server action methods:
+**Modern framework** — the action is a `#[PossibleAction]` method on the state class; permission is enforced by the annotation, so do **not** call `checkAction`, and the transition is the returned `State::class`:
+
+1. declare `#[PossibleAction] function actX(<params>, int $activePlayerId): mixed` (params injected by name; `#[JsonParam]`/`#[IntArrayParam]` for complex payloads)
+2. re-derive legal state from the DB and validate arguments (trust nothing from the client)
+3. apply domain rule
+4. write DB (no manual transaction — `throw` to roll back)
+5. notify (`$this->game->notify->all` / `->player`)
+6. `return NextState::class;` (or `99` to end)
+
+See skills/state-machine.md → "Modern Framework" for full detail.
+
+**Legacy framework** — the action is a `stXxx`/`actXxx` method on the game class:
 
 1. `checkAction(...)`
 2. validate arguments
@@ -70,7 +86,7 @@ Use this order in server action methods:
 4. apply domain rule
 5. write DB
 6. notify
-7. transition
+7. transition (`gamestate_nextState`)
 
 ## Test Scaffold Requirement
 
