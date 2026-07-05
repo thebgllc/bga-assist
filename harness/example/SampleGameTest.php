@@ -77,9 +77,9 @@ class SampleGameTest extends BgaGameTestCase
         $this->givenGameStateValue('cards_remaining', 3)
             ->givenActivePlayer(1)
             ->givenDatabaseRows('card', [
-                ['card_id' => 1, 'card_type' => 'red', 'card_number' => 1, 'card_shading' => 'solid'],
-                ['card_id' => 2, 'card_type' => 'green', 'card_number' => 2, 'card_shading' => 'striped'],
-                ['card_id' => 3, 'card_type' => 'blue', 'card_number' => 3, 'card_shading' => 'open'],
+                ['card_id' => 1, 'card_type' => 'red', 'card_number' => 1, 'card_shading' => 'solid', 'card_location' => 'hand', 'card_location_arg' => 1],
+                ['card_id' => 2, 'card_type' => 'green', 'card_number' => 2, 'card_shading' => 'striped', 'card_location' => 'hand', 'card_location_arg' => 1],
+                ['card_id' => 3, 'card_type' => 'blue', 'card_number' => 3, 'card_shading' => 'open', 'card_location' => 'hand', 'card_location_arg' => 1],
             ]);
 
         $this->whenAction('action_playSet', ['card_ids' => [1, 2, 3]]);

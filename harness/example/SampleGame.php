@@ -26,8 +26,60 @@ class SampleGame extends BgaStubs
 
     public function setupNewGame(): void
     {
+        $this->DbQuery(
+            "CREATE TABLE IF NOT EXISTS card (" .
+            "card_id INTEGER PRIMARY KEY, " .
+            "card_type TEXT, " .
+            "card_number INTEGER, " .
+            "card_shading TEXT, " .
+            "card_location TEXT, " .
+            "card_location_arg INTEGER)"
+        );
+
+        $existingCards = $this->getIntFromDB('SELECT COUNT(*) FROM card');
+        if ($existingCards === 0) {
+            $types = ['red', 'green', 'blue'];
+            $numbers = [1, 2, 3];
+            $shadings = ['solid', 'striped', 'open'];
+            $cardId = 1;
+
+            for ($i = 0; $i < 3; $i++) {
+                foreach ($types as $type) {
+                    foreach ($numbers as $number) {
+                        foreach ($shadings as $shading) {
+                            $this->DbQuery(sprintf(
+                                "INSERT INTO card (card_id, card_type, card_number, card_shading, card_location, card_location_arg) VALUES (%d, '%s', %d, '%s', 'deck', 0)",
+                                $cardId,
+                                $type,
+                                $number,
+                                $shading
+                            ));
+                            $cardId++;
+                        }
+                    }
+                }
+            }
+        }
+
+        $players = $this->getCollectionFromDB('SELECT player_id FROM player');
+        foreach ($players as $player) {
+            $playerId = (int) ($player['player_id'] ?? 0);
+            if ($playerId <= 0) {
+                continue;
+            }
+
+            $cardsToDeal = $this->getCollectionFromDB('SELECT card_id FROM card WHERE card_location = "deck" ORDER BY card_id LIMIT 3');
+            foreach ($cardsToDeal as $card) {
+                $this->DbQuery(sprintf(
+                    "UPDATE card SET card_location = 'hand', card_location_arg = %d WHERE card_id = %d",
+                    $playerId,
+                    (int) $card['card_id']
+                ));
+            }
+        }
+
         $this->_setState('playerTurn');
-        $this->_setGameStateValue('cards_remaining', 81);
+        $this->_setGameStateValue('cards_remaining', $this->getIntFromDB("SELECT COUNT(*) FROM card WHERE card_location = 'deck'"));
     }
 
     public function action_playSet(array $cardIds): void

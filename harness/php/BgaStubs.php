@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace BgaHarness;
 
+require_once __DIR__ . '/BgaExceptionTypes.php';
+
 abstract class BgaStubs
 {
     protected BgaDatabaseFake $db;
@@ -16,6 +18,7 @@ abstract class BgaStubs
     private array $gameStateValues = [];
     private array $allowedActions = [];
     private array $transitionMap = [];
+    private array $multiactivePlayers = [];
 
     public function __construct()
     {
@@ -58,13 +61,21 @@ abstract class BgaStubs
 
     protected function gamestate_setAllPlayersMultiactive(): void
     {
-        // No-op in harness; kept for API compatibility.
+        $this->multiactivePlayers = array_keys($this->players);
     }
 
     protected function gamestate_setPlayerNonMultiactive(int $playerId, string $nextState): void
     {
-        unset($this->players[$playerId]);
-        $this->currentState = $nextState;
+        $this->multiactivePlayers = array_values(
+            array_filter(
+                $this->multiactivePlayers,
+                static fn (int $id): bool => $id !== $playerId
+            )
+        );
+
+        if ($this->multiactivePlayers === []) {
+            $this->currentState = $nextState;
+        }
     }
 
     protected function checkAction(string $actionName): bool
@@ -99,6 +110,11 @@ abstract class BgaStubs
     protected function getUniqueValueFromDB(string $sql): mixed
     {
         return $this->db->getUniqueValueFromDB($sql);
+    }
+
+    protected function getIntFromDB(string $sql): int
+    {
+        return $this->db->getIntFromDB($sql);
     }
 
     protected function notifyAllPlayers(string $type, string $msg, array $data): void
@@ -157,6 +173,7 @@ abstract class BgaStubs
     public function _setPlayers(array $players): void
     {
         $this->players = $players;
+        $this->multiactivePlayers = [];
         if ($this->activePlayerId === 0 && $players !== []) {
             $first = (int) array_key_first($players);
             $this->activePlayerId = $first;
