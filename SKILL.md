@@ -1,79 +1,117 @@
 ---
 name: bga-dev-skill
-description: BGA game development patterns, API reference, and testing conventions for BoardGameArena games. Provides correct method signatures, state machine patterns, and test generation for PHP game logic and JS frontend code.
+description: Instructions for Claude Code to generate BGA-compatible server code and tests using this repository's implemented harness and patterns.
 ---
 
-# BGA Development
+# BGA Development Instructions
 
-## Your Role
-When working in a BGA project, act as a BGA-experienced developer and follow framework constraints exactly.
+## 1) Your Role
+Act like a senior BGA gameplay engineer who writes production-style server logic and runnable tests. Use only APIs that exist in this repository's harness and tested examples, prefer deterministic game logic, and generate tests in the fluent style used by the provided base test case.
 
-Rules:
-- Never suggest raw PDO usage in game classes.
-- Never use superglobals in action handlers.
-- Never invent BGA framework methods.
-- When generating tests, always use BgaGameTestCase and the fluent Given/When/Then style.
+## 2) Framework Version Detection
+Before writing code, detect project style and stay consistent:
 
-## File Structure
-Every BGA game should include these files:
-- gamename.game.php: server-side game logic class.
-- gamename.action.php: action endpoints and argument validation.
-- gamename.view.php: view integration and template data wiring.
-- gamename.js: Dojo frontend class with setup and notification handlers.
-- states.inc.php: state machine map.
-- material.inc.php: game constants and data definitions.
-- dbmodel.sql: schema.
-- gameoptions.inc.php and gamepreferences.inc.php: options/preferences.
-- stats.inc.php: statistics definitions.
+- Legacy-style indicators: root-level game files, Dojo module frontend, notifyAllPlayers and notifyPlayer usage.
+- Modern-style indicators: namespaced PHP classes and different notification/action APIs.
 
-## PHP Server - Critical Rules
-Database layer:
-- Use only DbQuery, getCollectionFromDB, getObjectFromDB, getUniqueValueFromDB, and getIntFromDB.
-- Keep SQL deterministic and explicit.
+If the project is mixed or unclear, stop and ask which framework version to target. Do not mix APIs from different versions in one patch.
 
-State machine:
+## 3) PHP Server - Critical Rules
+These are enforced by implemented harness behavior and passing example tests:
+
+- Use only harness-supported DB methods in game logic:
+  - DbQuery
+  - getCollectionFromDB
+  - getObjectFromDB
+  - getUniqueValueFromDB
+  - getIntFromDB
 - Validate player actions with checkAction before mutating state.
-- Use gamestate_nextState with named transitions from states.inc.php.
-- Use activeplayer for single actor turns and multipleactiveplayer for simultaneous actions.
+- Use throwUserError for gameplay validation failures.
+- Use throwVisibleSystemError for server/system failures.
+- Drive state changes through:
+  - gamestate_nextState
+  - gamestate_changeActivePlayer
+  - gamestate_setAllPlayersMultiactive
+  - gamestate_setPlayerNonMultiactive
+- Keep notification payload keys stable and explicit; use the same key names end-to-end.
+- Do not use raw PDO directly in game classes.
+- Do not use superglobals in action logic.
+- Do not invent framework methods that are not present in the harness.
 
-Errors:
-- Throw user-facing gameplay errors with throwUserError(errorCode).
-- Throw framework-visible system errors with throwVisibleSystemError(message).
+## 4) PHP Server - Common Patterns
+Use these concrete patterns from the implemented sample game and harness:
 
-## PHP Server - Common Patterns
-- Deck movement: update card_location and card_location_arg atomically.
-- Scoring: update DB score and emit notification in same action flow.
-- Multi-active handling: set all players multiactive, then set each non-multiactive as they resolve.
-- Undo-safe actions: check preconditions first, then write DB, then notify.
+- Setup/deal flow:
+  - Create required tables if missing.
+  - Seed baseline data if empty.
+  - Deal cards by moving records between locations.
+  - Set initial state and game-state values.
+- Action flow:
+  - checkAction
+  - validate input
+  - load from DB
+  - run pure validation logic
+  - write DB changes
+  - send notifications
+  - transition state
+- Scoring flow:
+  - Update score in DB.
+  - Update card locations in DB.
+  - Notify with result payload.
+- Multi-active flow:
+  - mark all players multiactive.
+  - mark each player non-multiactive as they complete.
+  - transition when all are done.
 
-## JS Frontend - Critical Rules
-- Use define([...], function(...) { ... }) Dojo module wrapper.
-- Use ajaxcall(url, args, this, onSuccess, onError).
-- Register notifications in setupNotifications and route data through notif.args.
-- Prefer dojo.query and dojo.place over direct DOM APIs.
+## 5) Testing - Generating Tests from Natural Language
+When asked "what happens when...", generate PHPUnit tests using BgaGameTestCase fluent helpers and preserve this pattern:
 
-## State Machine
-- states.inc.php states must include id, name, description, type, and transitions.
-- Non-game-end states should include possibleactions.
-- Transition names should be descriptive and stable.
+- Given:
+  - givenActivePlayer
+  - givenCurrentPlayer when actor mismatch matters
+  - givenState
+  - givenDatabaseRows
+  - givenGameStateValue
+- When:
+  - whenAction(method, args)
+- Then:
+  - result->assertSucceeded() or result->assertFailedWith(code)
+  - thenStateShouldBe
+  - thenNotificationSent or thenNotificationNotSent
+  - thenPlayerNotifiedWith when target-specific behavior matters
+  - thenDatabaseHas or thenDatabaseCount
 
-## Testing - Natural Language to Tests
-When asked scenario questions, generate PHPUnit tests with BgaGameTestCase pattern:
-1. givenActivePlayer and givenState setup.
-2. givenDatabaseRows and givenGameStateValue setup.
-3. whenAction call.
-4. thenStateShouldBe, thenNotificationSent, thenDatabaseHas assertions.
+Use these scenario templates from the sample tests:
 
-When asked for JS utility testing, generate Jest tests that isolate pure logic and avoid UI/network assumptions.
+- happy path
+- invalid input with explicit error code
+- wrong player acting
+- endgame transition condition
+- pure logic function test with direct assertions
 
-## Testing - Scope
-Can test locally:
-- Game logic
-- State transitions
-- DB writes and reads
-- Notification payloads
+Keep the CC PATTERN comment style in generated example-heavy tests because it is intentional teaching content.
 
-Cannot test without live Studio slot:
-- Rendering and animations
-- Real network behavior via ajaxcall
-- End-to-end Studio UI integration
+## 6) Testing - What Can and Cannot Be Tested
+Can test locally with this harness:
+
+- server action validation
+- state transitions
+- DB writes/reads
+- notification emission and payload subsets
+- pure gameplay logic methods
+
+Cannot test with this harness alone:
+
+- Studio rendering behavior
+- animation timing in live client
+- real network transport behavior
+- full end-to-end Studio integration
+
+## 7) Sub-Skill References
+When work touches these topics, consult these files and follow their guidance:
+
+- State machine patterns: skills/state-machine.md
+- Database patterns: skills/database-patterns.md
+- JS Dojo patterns: skills/js-dojo-patterns.md
+- Notifications contract: skills/notifications.md
+- Scaffold templates: skills/scaffold-templates.md

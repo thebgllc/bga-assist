@@ -37,12 +37,18 @@ class BgaNotificationSpy
                 continue;
             }
             if ($this->containsSubset($notification['data'], $dataSubset)) {
-                Assert::assertTrue(true);
                 return;
             }
         }
 
-        Assert::fail('Expected notification was not sent: ' . $type);
+        Assert::fail(
+            sprintf(
+                'Expected notification "%s" with subset %s was not sent. Captured notifications: %s',
+                $type,
+                json_encode($dataSubset),
+                json_encode($this->notifications)
+            )
+        );
     }
 
     public function assertNotifiedPlayer(int $playerId, string $type, array $dataSubset = []): void
@@ -52,23 +58,34 @@ class BgaNotificationSpy
                 continue;
             }
             if ($this->containsSubset($notification['data'], $dataSubset)) {
-                Assert::assertTrue(true);
                 return;
             }
         }
 
-        Assert::fail('Expected player notification was not sent: ' . $type);
+        Assert::fail(
+            sprintf(
+                'Expected player %d notification "%s" with subset %s was not sent. Captured notifications: %s',
+                $playerId,
+                $type,
+                json_encode($dataSubset),
+                json_encode($this->notifications)
+            )
+        );
     }
 
     public function assertNotNotified(string $type): void
     {
         foreach ($this->notifications as $notification) {
             if ($notification['type'] === $type) {
-                Assert::fail('Notification should not have been sent: ' . $type);
+                Assert::fail(
+                    sprintf(
+                        'Notification "%s" should not have been sent, but was captured: %s',
+                        $type,
+                        json_encode($notification)
+                    )
+                );
             }
         }
-
-        Assert::assertTrue(true);
     }
 
     public function assertNotificationCount(int $expected): void

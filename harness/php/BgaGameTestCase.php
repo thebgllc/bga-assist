@@ -110,9 +110,9 @@ abstract class BgaGameTestCase extends TestCase
 
 class ActionResult
 {
-    public bool $succeeded;
-    public ?string $errorCode;
-    public mixed $returnValue;
+    public bool $succeeded = false;
+    public ?string $errorCode = null;
+    public mixed $returnValue = null;
 
     public static function success(mixed $value): self
     {
@@ -136,7 +136,11 @@ class ActionResult
 
     public static function systemError(string $message): self
     {
-        return self::userError($message);
+        $result = new self();
+        $result->succeeded = false;
+        $result->errorCode = $message;
+
+        return $result;
     }
 
     public function assertSucceeded(): void
@@ -147,6 +151,10 @@ class ActionResult
     public function assertFailedWith(string $errorCode): void
     {
         Assert::assertFalse($this->succeeded, 'Expected action to fail.');
-        Assert::assertSame($errorCode, $this->errorCode);
+        Assert::assertSame(
+            $errorCode,
+            $this->errorCode,
+            sprintf('Expected failure code "%s", got "%s".', $errorCode, (string) $this->errorCode)
+        );
     }
 }

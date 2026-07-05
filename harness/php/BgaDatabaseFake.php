@@ -70,8 +70,8 @@ class BgaDatabaseFake
             return;
         }
 
-        $columns = array_keys($rows[0]);
-        $this->ensureTableExists($table, $columns);
+        $columns = $this->collectColumns($rows);
+        $this->ensureTableHasColumns($table, $columns, $rows);
 
         $placeholders = implode(', ', array_fill(0, count($columns), '?'));
         $columnsSql = implode(', ', array_map(static fn (string $c): string => '"' . $c . '"', $columns));
@@ -79,7 +79,11 @@ class BgaDatabaseFake
 
         $stmt = $this->pdo->prepare($sql);
         foreach ($rows as $row) {
-            $stmt->execute(array_values($row));
+            $values = [];
+            foreach ($columns as $column) {
+                $values[] = $row[$column] ?? null;
+            }
+            $stmt->execute($values);
         }
     }
 
@@ -92,7 +96,11 @@ class BgaDatabaseFake
         $stmt->execute($params);
         $count = (int) $stmt->fetchColumn();
 
-        Assert::assertGreaterThan(0, $count, 'Expected row was not found in table ' . $table);
+        Assert::assertGreaterThan(
+            0,
+            $count,
+            sprintf('Expected row was not found in table "%s" for conditions: %s', $table, json_encode($conditions))
+        );
     }
 
     public function assertRowCount(string $table, int $expected, array $conditions = []): void
@@ -104,7 +112,17 @@ class BgaDatabaseFake
         $stmt->execute($params);
         $count = (int) $stmt->fetchColumn();
 
-        Assert::assertSame($expected, $count, 'Unexpected row count in table ' . $table);
+        Assert::assertSame(
+            $expected,
+            $count,
+            sprintf(
+                'Unexpected row count in table "%s" for conditions %s. Expected %d, got %d.',
+                $table,
+                json_encode($conditions),
+                $expected,
+                $count
+            )
+        );
     }
 
     private function query(string $sql): PDOStatement
@@ -117,15 +135,85 @@ class BgaDatabaseFake
         return $stmt;
     }
 
-    private function ensureTableExists(string $table, array $columns): void
+    private function collectColumns(array $rows): array
+    {
+        $columns = [];
+        foreach ($rows as $row) {
+            foreach (array_keys($row) as $column) {
+                if (!in_array($column, $columns, true)) {
+                    $columns[] = $column;
+                }
+            }
+        }
+
+        return $columns;
+    }
+
+    private function ensureTableHasColumns(string $table, array $columns, array $rows): void
+    {
+        if (!$this->tableExists($table)) {
+            $this->createTable($table, $columns, $rows);
+
+            return;
+        }
+
+        $existing = $this->listColumns($table);
+        foreach ($columns as $column) {
+            if (in_array($column, $existing, true)) {
+                continue;
+            }
+            $type = $this->inferColumnType($table, $column, $rows);
+            $this->pdo->exec('ALTER TABLE "' . $table . '" ADD COLUMN "' . $column . '" ' . $type);
+        }
+    }
+
+    private function createTable(string $table, array $columns, array $rows): void
     {
         $defs = [];
         foreach ($columns as $column) {
-            $type = $column === $table . '_id' || str_ends_with($column, '_id') ? 'INTEGER' : 'TEXT';
-            $defs[] = '"' . $column . '" ' . $type;
+            $defs[] = '"' . $column . '" ' . $this->inferColumnType($table, $column, $rows);
         }
         $sql = 'CREATE TABLE IF NOT EXISTS "' . $table . '" (' . implode(', ', $defs) . ')';
         $this->pdo->exec($sql);
+    }
+
+    private function tableExists(string $table): bool
+    {
+        $stmt = $this->pdo->prepare("SELECT name FROM sqlite_master WHERE type='table' AND name = ?");
+        $stmt->execute([$table]);
+
+        return (bool) $stmt->fetchColumn();
+    }
+
+    private function listColumns(string $table): array
+    {
+        $stmt = $this->query('PRAGMA table_info("' . $table . '")');
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        return array_map(static fn (array $row): string => (string) $row['name'], $rows);
+    }
+
+    private function inferColumnType(string $table, string $column, array $rows): string
+    {
+        if ($column === $table . '_id' || str_ends_with($column, '_id')) {
+            return 'INTEGER';
+        }
+
+        foreach ($rows as $row) {
+            if (!array_key_exists($column, $row) || $row[$column] === null) {
+                continue;
+            }
+
+            if (is_int($row[$column]) || is_bool($row[$column])) {
+                return 'INTEGER';
+            }
+
+            if (is_float($row[$column])) {
+                return 'REAL';
+            }
+        }
+
+        return 'TEXT';
     }
 
     private function buildWhere(array $conditions): array
