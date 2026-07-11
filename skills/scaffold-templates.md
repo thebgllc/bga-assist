@@ -96,3 +96,63 @@ For each gameplay action, create corresponding PHPUnit tests using `BgaGameTestC
 - invalid input path
 - wrong-player path
 - transition path
+
+## Modern Test Scaffold Example
+
+Modern games use `$this->notify`, `$this->player_data`, `$this->gamestate`, and
+`bga_rand()`. The harness supports these natively — seed randomness with
+`givenDiceRolls`, seed cross-state context with `givenPlayerData`, and assert
+stored context with `thenPlayerDataIs`:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace BgaExample;
+
+use BgaHarness\BgaGameTestCase;
+use BgaHarness\BgaStubs;
+
+class ModernActionTest extends BgaGameTestCase
+{
+    protected function createGame(): BgaStubs
+    {
+        $game = new MyModernGame();
+        $game->setupNewGame();
+        // If the game transitions with gamestate->nextState(SomeState::class),
+        // map each State::class to its state name so transitions resolve here:
+        // $game->_registerStateClasses([PlayerTurn::class => 'playerTurn']);
+        return $game;
+    }
+
+    public function test_action_happy_path(): void
+    {
+        $this->givenActivePlayer(1)
+            ->givenState('playerTurn')
+            ->givenPlayerData(1, 'combo_count', 2)  // seed cross-state context
+            ->givenDiceRolls([4]);                  // bga_rand(1,6) -> 4
+
+        $result = $this->whenAction('actDoThing', [5, 1]); // args..., activePlayerId
+
+        $result->assertSucceeded();
+        $this->thenNotificationSent('thingDone', ['player_id' => 1]);
+        $this->thenPlayerDataIs(1, 'combo_count', 3);       // assert updated context
+        $this->thenStateShouldBe('playerTurn');
+    }
+
+    public function test_action_invalid_input_rejected(): void
+    {
+        $this->givenActivePlayer(1)->givenState('playerTurn');
+
+        // Modern code throws \UserException('code'); caught as a failure result.
+        $result = $this->whenAction('actDoThing', [0, 1]);
+
+        $result->assertFailedWith('invalidInput');
+        $this->thenNotificationNotSent('thingDone');
+    }
+}
+```
+
+Keep the existing legacy scaffold above for legacy projects; use this block when
+§2 (Framework Version Detection) resolves to modern.
