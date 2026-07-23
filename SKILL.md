@@ -151,3 +151,4 @@ When work touches these topics, consult these files and follow their guidance:
 - JS Dojo patterns: skills/js-dojo-patterns.md
 - Notifications contract: skills/notifications.md
 - Scaffold templates: skills/scaffold-templates.md
+- i18n / translation (do it up front): skills/i18n.md
