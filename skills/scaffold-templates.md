@@ -6,7 +6,20 @@ Legacy framework exists, but its file shape differs; consult official BGA docs w
 
 ## Required Structure
 
+Scaffold the top-level project layout — `docs/`, `tests/`, `composer.json`,
+`phpunit.xml` — alongside `modules/` from Phase 0, not after the fact. See
+skills/project-lifecycle.md for the full rationale, the phased-plan template,
+and why `docs/`/`tools/`/`tests/` must never be referenced by anything Studio
+actually deploys.
+
 ```text
+docs/
+  RULES.md
+  IMPLEMENTATION_PLAN.md
+tests/
+  bootstrap.php
+composer.json
+phpunit.xml
 modules/
   php/
     Game.php
