@@ -77,11 +77,16 @@ itself across multiple games:
   directly, not just via a soak), a content/copy pass (in-game rules panel,
   tooltip consistency), and a zombie soak test (see below) before calling
   it submission-ready.
-- **Phase 6 — Art, content & release.** Final art/palette/`player_colors`,
-  rulebook PDF generated from `docs/RULES.md`, PnP kit if applicable,
-  landing page on thebgllc.com, BGG entry (description/images/credits),
-  then the release gates: a full Studio pre-submission testing pass,
-  private Alpha, public Alpha.
+- **Phase 6 — Art, content & release.** **Request the BGG ID early** — as soon
+  as the short + long descriptions exist, submit the BGG listing. That's all
+  BGG requires to issue an ID; art, images, and links are added to the entry
+  later. Getting an ID back takes time, so kick this off well before the rest
+  of the phase is ready, not bundled in at the end behind art/PnP/landing-page
+  work. Everything else — final art/palette/`player_colors`, rulebook PDF
+  generated from `docs/RULES.md`, PnP kit if applicable, landing page on
+  thebgllc.com, BGG images/credits/links — fills in around that ID once it's
+  issued. Release gates: a full Studio pre-submission testing pass, private
+  Alpha, public Alpha.
 
 Not every game needs every phase at this weight — a small game may collapse
 Phases 1–2 or skip the simulator entirely. But the **interleaving lesson in
@@ -105,6 +110,13 @@ replays. See `harness/example/` for a worked pattern to adapt.
 
 ## Release checklist (Phase 6)
 
+- [ ] **Request the BGG ID early — short + long description is all that's
+      required to submit.** Do this as soon as those two are drafted, not
+      bundled with art/content at the end of the phase; the ID takes time to
+      come back, so it should be in flight well before the rest of this
+      checklist is ready. Descriptions must follow BGG's format rules (short
+      description ≤85 characters, one sentence, no tagline, no emoji, game
+      name omitted, evokes the game rather than listing mechanisms).
 - [ ] Final art direction, palette, `player_colors`
 - [ ] Meta art for BGA (icon, box, banner) at required sizes
 - [ ] Rulebook PDF generated from `docs/RULES.md` (keep `RULES.md` as the
@@ -119,8 +131,8 @@ replays. See `harness/example/` for a worked pattern to adapt.
       turned out to be an unrelated project) can send the next session down
       the wrong path. State the assumption explicitly and get it confirmed
       once, rather than propagating a guess.
-- [ ] BGG entry: short + long description, metadata (weight/luck/strategy/
-      player count), images, credits
+- [ ] BGG entry: images, credits, links back to TBG/BGA (added once the ID
+      from the early submission above exists)
 - [ ] Full Studio pre-submission pass: all player counts, reconnect/zombie/
       spectator, privacy model under real (non-simulated) clients
 - [ ] Private Alpha, then Public Alpha
