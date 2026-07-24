@@ -82,13 +82,16 @@ itself across multiple games:
   BGG requires to issue an ID; art, images, and links are added to the entry
   later. Getting an ID back takes time, so kick this off well before the rest
   of the phase is ready, not bundled in at the end behind art/PnP/landing-page
-  work. Everything else — final art/palette/`player_colors`, rulebook PDF
+  work. Once the ID exists, for original (self-published) games, add the BGA
+  weblink and box/listing art to the BGG entry and grant BGA a publisher
+  license (see the release checklist below for the exact steps — skip this
+  sub-step for licensed/adapted games, since the rights holder owns that BGG
+  listing). Everything else — final art/palette/`player_colors`, rulebook PDF
   generated from `docs/RULES.md`, PnP kit if applicable, landing page on
-  thebgllc.com, BGG images/credits/links — fills in around that ID once it's
-  issued. Before submitting for alpha: a **final code review and UX review**
-  (see below), then three distinct BGA checks — the **project-check tool**, a
-  **dry-run code build**, and BGA's **pre-alpha checklist** — then private
-  Alpha, then public Alpha.
+  thebgllc.com — fills in around that ID once it's issued. Before submitting
+  for alpha: a **final code review and UX review** (see below), then three
+  distinct BGA checks — the **project-check tool**, a **dry-run code build**,
+  and BGA's **pre-alpha checklist** — then private Alpha, then public Alpha.
 
 Not every game needs every phase at this weight — a small game may collapse
 Phases 1–2 or skip the simulator entirely. But the **interleaving lesson in
@@ -148,6 +151,15 @@ private-alpha blockers are cleared.
       checklist is ready. Descriptions must follow BGG's format rules (short
       description ≤85 characters, one sentence, no tagline, no emoji, game
       name omitted, evokes the game rather than listing mechanisms).
+- [ ] **Once the BGG ID exists, for original (self-published) games only:**
+      add the BGA weblink on the BGG entry's weblink page
+      (`boardgamegeek.com/browse/weblink/thing/<id>`), upload box/listing art
+      via the BGG entry's images page
+      (`boardgamegeek.com/boardgame/<id>/images`), then grant BGA a publisher
+      license for the game at boardgamearena.com/gamepublishers. Skip this
+      for licensed/adapted games (e.g. an adaptation of another publisher's
+      game) — the rights holder owns that BGG listing, so coordinate with
+      them instead of touching it directly.
 - [ ] Final art direction, palette, `player_colors`
 - [ ] Meta art for BGA (icon, box, banner) at required sizes
 - [ ] Rulebook PDF generated from `docs/RULES.md` (keep `RULES.md` as the
@@ -162,8 +174,6 @@ private-alpha blockers are cleared.
       turned out to be an unrelated project) can send the next session down
       the wrong path. State the assumption explicitly and get it confirmed
       once, rather than propagating a guess.
-- [ ] BGG entry: images, credits, links back to TBG/BGA (added once the ID
-      from the early submission above exists)
 - [ ] All four pre-alpha submission gates pass (see above): final code +
       UX review, project-check tool, dry-run build, pre-alpha checklist
 - [ ] Private Alpha, then Public Alpha
