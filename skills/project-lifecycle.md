@@ -85,8 +85,10 @@ itself across multiple games:
   work. Everything else — final art/palette/`player_colors`, rulebook PDF
   generated from `docs/RULES.md`, PnP kit if applicable, landing page on
   thebgllc.com, BGG images/credits/links — fills in around that ID once it's
-  issued. Release gates: a full Studio pre-submission testing pass, private
-  Alpha, public Alpha.
+  issued. Before submitting for alpha: a **final code review and UX review**
+  (see below), then three distinct BGA checks — the **project-check tool**, a
+  **dry-run code build**, and BGA's **pre-alpha checklist** — then private
+  Alpha, then public Alpha.
 
 Not every game needs every phase at this weight — a small game may collapse
 Phases 1–2 or skip the simulator entirely. But the **interleaving lesson in
@@ -107,6 +109,35 @@ game-option variants, over many seeds. It should assert:
 
 On failure, print the seed/config and a move trace so the exact game
 replays. See `harness/example/` for a worked pattern to adapt.
+
+## Pre-alpha submission gates
+
+Four distinct checks before submitting for private Alpha — don't collapse
+them into one vague "testing pass," each catches different things:
+
+1. **Final code review + UX review, done fresh.** A full top-to-bottom pass
+   over the whole repo — not just the diff since the last review — confirming
+   everything is clean before it goes in front of BGA reviewers or real
+   players. Best done in chat (not Claude Code): read every game-logic file
+   and the client JS end to end, re-check that every open code-review finding
+   was actually resolved (not just marked closed), and separately walk the UX
+   as a player would experience it (onboarding clarity, error states, mobile/
+   responsive behavior, end-game flow). Treat this as independent of Phase 5's
+   hardening pass — Phase 5 is "make it good," this is "verify it's still
+   good" right before it's judged.
+2. **BGA's project-check tool.** Studio's own static-analysis/lint pass over
+   the game project. Run it and fix everything it flags before moving on.
+3. **A dry-run code build.** Confirm the project actually builds clean on
+   Studio from the current `master` — catches deploy-path issues (missing
+   files, broken autoload, stale references) that a local `composer test`
+   pass can't see.
+4. **BGA's pre-alpha checklist.** BGA's own submission checklist (metadata,
+   options, stats, translations, etc.) — best run by Claude Code, since it's
+   a local/tooling-heavy pass through the repo and BGA's requirements docs,
+   not something that needs a person driving Studio's UI.
+
+Only after all four pass: submit for private Alpha, then public Alpha once
+private-alpha blockers are cleared.
 
 ## Release checklist (Phase 6)
 
@@ -133,6 +164,6 @@ replays. See `harness/example/` for a worked pattern to adapt.
       once, rather than propagating a guess.
 - [ ] BGG entry: images, credits, links back to TBG/BGA (added once the ID
       from the early submission above exists)
-- [ ] Full Studio pre-submission pass: all player counts, reconnect/zombie/
-      spectator, privacy model under real (non-simulated) clients
+- [ ] All four pre-alpha submission gates pass (see above): final code +
+      UX review, project-check tool, dry-run build, pre-alpha checklist
 - [ ] Private Alpha, then Public Alpha
