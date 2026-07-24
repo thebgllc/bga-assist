@@ -152,3 +152,6 @@ When work touches these topics, consult these files and follow their guidance:
 - Notifications contract: skills/notifications.md
 - Scaffold templates: skills/scaffold-templates.md
 - i18n / translation (do it up front): skills/i18n.md
+- Project lifecycle, repo layout, deploy discipline, phased planning, soak
+  testing, and the release checklist (do this from Phase 0, not as a
+  retrofit): skills/project-lifecycle.md
