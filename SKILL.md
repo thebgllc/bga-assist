@@ -59,7 +59,8 @@ Modern-framework state rules (when §2 detects modern style — see skills/state
 - One class per state in `modules/php/States/`; transitions are the returned `State::class` (or `99`). Do not use `possibleactions`/`checkAction`/`$machinestates` — those are legacy-only, and mixing versions is forbidden (§2).
 - Every `ACTIVE_PLAYER`/`MULTIPLE_ACTIVE_PLAYER` state must define a `zombie($playerId)` that takes the minimal legal move, or abandoned tables stall.
 - `getArgs()` is broadcast to all clients and gets no active-player id — never return a player's hand or other hidden info from it. Private data flows via `getAllDatas()` + `notify->player()`.
-average 
+- Decide **undo ("Restart turn") before alpha**: `db_undo_support` in gameinfos only reaches tables created after it is set. The BGA Undo policy's line is a hidden or random reveal since the savepoint (a draw, a refill turning up the next tile, a die) — not whether notifications were broadcast: `undoRestorePoint()` restores the whole database and rebuilds every client. Pattern: `undoSavepoint()` in the turn state's `onEnteringState`, a `turnRevealed` global that every reveal sets, one red "Restart turn" button offered while it is clear, an `actRestartTurn` that refuses once it is set and transitions immediately after restoring (the globals cache is stale until it does). See skills/state-machine.md → "Undo / Restart turn".
+
 ## 4) PHP Server - Common Patterns
 Use these concrete patterns from the implemented sample game and harness:
 
@@ -143,7 +144,51 @@ Cannot test with this harness alone:
 - real network transport behavior
 - full end-to-end Studio integration
 
-## 7) Sub-Skill References
+These four are not out of reach, they are just out of reach *of the harness*. All of them can be
+exercised by hand against a live Studio table in Chrome — see section 7. Harness tests remain the
+place you assert; the browser is where you find the wiring that silently never ran.
+
+## 7) Testing - Driving a Live Studio Table in Chrome
+Use the Claude in Chrome browser tools to smoke-test a deploy end to end. This is slow, stateful and
+unassertable, so it never replaces harness tests. It catches what they structurally cannot: a dead
+click handler, a notification nobody subscribed to, a card that renders in the wrong column.
+
+Set up a table:
+
+1. `studio.boardgamearena.com/studiogame?game=<gamename>` -> **Play** -> **Create**.
+2. Set the player count with the -/+ control, then **Express start**. The empty seats fill with your
+   own studio accounts (`jcb0`, `jcb1`, ...) and the game starts immediately.
+
+Drive every seat from the one login:
+
+- Click the red arrow beside a player's name in the top-right player panel. It opens
+  `tableview?table=<id>&as=<player_id>` already acting as that player.
+- No second login, no incognito window, no separate browser profile — which matters, because an
+  agent cannot type a password. Each seat gets its own tab; alternate turns by switching tabs.
+
+Read real state instead of guessing from pixels:
+
+- The game runs in an **iframe**. `gameui` is not on the top window; reach it with
+  `document.querySelector('iframe').contentWindow.gameui`.
+- `gameui.player_id` vs `gameui.getActivePlayerId()` tells you which seat a tab is and whether it is
+  that seat's turn.
+- `gameui.gamedatas` is that seat's `getAllDatas` payload. Compare it across seats to prove privacy
+  holds: own `hand` present, opponents reduced to `handCounts`.
+
+Traps:
+
+- Real-time tables start a ~15s reflection clock. Select the card and click the target promptly, or
+  the seat burns its main clock and starts posting warnings into the log.
+- The console is noisy with framework errors that are not yours — `ly_metasite.js` throwing
+  `Cannot read properties of null (reading 'scrollHeight')` on the chat panel is normal. Filter
+  console reads to your own game file before calling anything a bug.
+- Never trigger `confirm()` / `alert()`; a modal dialog freezes browser automation entirely.
+
+A pass means: the table loads with no error out of your own JS, each action type completes end to
+end (log line, deck and counter movement, hand refill, turn passes, progression ticks), and the
+board reads correctly from both seats' perspectives.
+
+## 8) Sub-Skill References
 When work touches these topics, consult these files and follow their guidance:
 
 - State machine patterns: skills/state-machine.md

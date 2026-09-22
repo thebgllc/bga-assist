@@ -234,9 +234,56 @@ public function getArgs(): array
 
 For rich interactive turns, the client stages all edits locally and submits **once** (see the "stage-on-client, submit-once" pattern). The server must independently re-derive the legal state and re-validate the entire submission — never trust the proposal's shape. RummyTime's `actPlayMelds` re-reads the player's hand and the table from the DB and re-checks every rule before mutating.
 
+## Undo / Restart turn
+
+Decide this **before alpha**: `"db_undo_support": true` in gameinfos creates the undo tables only
+for tables started after it is set (Oceans found out after alpha had begun). What the BGA Undo
+policy forbids is a restore across a *hidden or random reveal* — a draw, an offer refill turning up
+the next tile, a die — or across another player's action or a change of active player. It does not
+care that notifications were broadcast: `undoRestorePoint()` restores the whole database (game log
+included) and every client rebuilds from `setup`. So "keep it client-side so undo works" is the wrong
+question; the right one is "what has been revealed since the savepoint".
+
+Policy also says one whole-turn restart, not per-step undo (Studio guideline B.3), and only where
+opponents would let you take the move back in real life — a turn that is a cascade of prompts
+qualifies; a single clear click does not.
+
+The pattern (Entropy, `States/PlayerTurn.php`, `States/EffectPrompt.php`, `Model/DbWorld.php`):
+
+```php
+// the turn state: single active player, savepoint as the turn begins
+public function onEnteringState(int $activePlayerId): void
+{
+    $this->game->globals->set('turnRevealed', 0);   // before the snapshot, so it is inside it
+    $this->game->undoSavepoint();                     // stored when this request commits
+}
+
+// wherever something hidden is turned up (a draw, an offer refill)
+private function reveal(): void { $this->game->globals->set('turnRevealed', 1); }
+
+// the prompt state: offer it in getArgs, refuse it once revealed, restore, and change state AT ONCE
+public function getArgs(): array { return [..., 'restartable' => $this->restartable()]; }
+
+#[PossibleAction]
+public function actRestartTurn(int $activePlayerId)
+{
+    if (!$this->restartable()) {
+        throw new UserException(clienttranslate('The turn cannot be restarted once a new tile or card has been turned up'));
+    }
+    $this->game->undoRestorePoint();
+    return PlayerTurn::class;   // the globals cache is stale until the state changes
+}
+```
+
+Client: one `addActionButton(_('Restart turn'), () => performAction('actRestartTurn'), { color: 'alert' })`
+when `args.restartable`, last and red (guidelines A.2, C.3). Test shim: `undoSavepoint()` copies
+every table (plus globals, scores, stats) and `undoRestorePoint()` puts them back and refuses a
+changed active player — then the real action path is under test, not a mock.
+
 ## Modern Failure Modes
 
 - `GAME` state's `onEnteringState` returns nothing → game stuck.
+- `db_undo_support` switched on after alpha → existing tables error on Undo; decide it before.
 - Missing `zombie()` on an active state → abandoned tables never progress.
 - Private data placed in `getArgs()` → hand leak to opponents.
 - Calling `checkAction`/using `possibleactions` in a modern project → mixing framework versions (SKILL §2 forbids this).
