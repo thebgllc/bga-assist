@@ -240,9 +240,11 @@ Decide this **before alpha**: `"db_undo_support": true` in gameinfos creates the
 for tables started after it is set (Oceans found out after alpha had begun). What the BGA Undo
 policy forbids is a restore across a *hidden or random reveal* — a draw, an offer refill turning up
 the next tile, a die — or across another player's action or a change of active player. It does not
-care that notifications were broadcast: `undoRestorePoint()` restores the whole database (game log
-included) and every client rebuilds from `setup`. So "keep it client-side so undo works" is the wrong
-question; the right one is "what has been revealed since the savepoint".
+care that notifications were broadcast: `undoRestorePoint()` restores the game database and every
+client rebuilds from `setup`. The log is NOT rewound — the earlier lines stay and the framework appends
+"<player> takes back their move" for everyone (verified on Studio, Entropy 2026-09-22). So "keep it
+client-side so undo works" is the wrong question; the right one is "what has been revealed since the
+savepoint".
 
 Policy also says one whole-turn restart, not per-step undo (Studio guideline B.3), and only where
 opponents would let you take the move back in real life — a turn that is a cascade of prompts
