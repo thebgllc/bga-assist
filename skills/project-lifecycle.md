@@ -16,6 +16,8 @@ docs/
   ARCHITECTURE.md        # engine/design notes, if the game has real internal structure
   IMPLEMENTATION_PLAN.md # phased plan (see below) — living doc, updated every phase
   SUCCESS_METRICS.md     # acceptance gates for a tuning simulator, if one exists
+  AUTHOR_QUESTIONS.md    # licensed adaptations: open rules questions for the designer
+  ASSUMPTIONS.md         # licensed adaptations: every [Hx] assumption made meanwhile
 tests/
   bootstrap.php           # modern-framework shim (Table/GameState stand-ins over
                            # in-memory SQLite) — check whether this repo's own
@@ -32,6 +34,19 @@ phpunit.xml
 Keep `README.md`'s "Project Layout" section accurate as the repo evolves — a
 stale layout diagram pointing at a file that moved or was renamed is worse
 than no diagram at all.
+
+## Rules clarifications (licensed adaptations)
+
+When adapting someone else's game, the rulebook will have gaps. **Don't block implementation waiting for the designer's answers.** Classify each question, make a reasonable assumption, and write it down:
+
+- `docs/AUTHOR_QUESTIONS.md`: one entry per question, tagged **OPEN / ASSUMED / CLOSED** and typed **RULES-MISSING** (not covered), **RULES-AMBIGUOUS** (two readings), **RULES-IMPLICIT** (obvious at a physical table, but code has to decide) or **FEEDBACK** (a suggestion for the designer, not a question).
+- `docs/ASSUMPTIONS.md`: every assumption gets an ID `[H1]`, `[H2]`, … Reference that ID from its question and from a code comment at the place that implements it, so a designer's answer leads straight to the lines to change.
+
+```php
+// [H3] Ties on the military track go to the earlier seat (AUTHOR_QUESTIONS.md Q7, ASSUMED).
+```
+
+Adapted from [rbellec/claude-code-bga](https://github.com/rbellec/claude-code-bga) (MIT).
 
 ## Deploy discipline
 
@@ -113,6 +128,16 @@ game-option variants, over many seeds. It should assert:
 On failure, print the seed/config and a move trace so the exact game
 replays. See `harness/example/` for a worked pattern to adapt.
 
+## Static analysis (optional, advisory)
+
+PHPStan, PHP-CS-Fixer, Rector and PHPMD can complement the harness, but treat them as advice. They must never gate a deploy, because they can't see the framework. The one hard-won rule, from rbellec's Rector incident: Rector's `deadCode` set reads an empty stub `Table::__construct() {}` as the truth and **deletes `parent::__construct()` from `Game.php`**. The game then fails to launch with no error, while PHPStan and PHPMD stay green. If you use Rector:
+
+- skip `RemoveParentDelegatingConstructorRector` and `RemoveParentCallWithoutParentRector`;
+- never declare `$bga` / `$gamestate` properties on `Game`, because the framework injects them on the parent;
+- read the dry-run diff before any automatic fix, and launch a real Studio table after one.
+
+A PHPStan stub of the framework is a separate thing from the harness's runtime `BgaStubs`, so don't conflate them. Source: [rbellec/claude-code-bga](https://github.com/rbellec/claude-code-bga) (MIT), TECHNICAL_NOTES.md.
+
 ## Pre-alpha submission gates
 
 Four distinct checks before submitting for private Alpha — don't collapse
@@ -137,7 +162,11 @@ them into one vague "testing pass," each catches different things:
 4. **BGA's pre-alpha checklist.** BGA's own submission checklist (metadata,
    options, stats, translations, etc.) — best run by Claude Code, since it's
    a local/tooling-heavy pass through the repo and BGA's requirements docs,
-   not something that needs a person driving Studio's UI.
+   not something that needs a person driving Studio's UI. Include the
+   **Zombie Mode level** (Game Metadata Manager → Metadata tab: 0 passing /
+   1 random / 2 greedy / 3 smart). While it is unset, "Request ALPHA status"
+   is blocked, and it must honestly match what every state's `zombie()` does
+   (skills/state-machine.md → "Zombie Handler Is Required").
 
 Only after all four pass: submit for private Alpha, then public Alpha once
 private-alpha blockers are cleared.

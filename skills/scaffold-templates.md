@@ -34,6 +34,10 @@ modules/
   templates/
 ```
 
+## Metadata Files: Check Which Format the Scaffold Produced
+
+Recent Studio scaffolds (2026+: Entropy, Oceans, Salvage Divers) generate JSONC metadata: `gameinfos.jsonc`, `gameoptions.jsonc`, `gamepreferences.jsonc`, `stats.jsonc`. Slightly older ones (Top This, Fill the Rows) pair `gameinfos.inc.php` with plain `.json` for options, preferences and stats. Legacy projects may still have `gameoptions.inc.php` and `stats.inc.php`. Look at what the scaffold actually produced and edit that. Don't create the other format alongside it, and don't assume either one when writing instructions or checks.
+
 ## Required Files and Responsibilities
 
 - `modules/php/Game.php`

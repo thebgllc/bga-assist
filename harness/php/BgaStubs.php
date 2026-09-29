@@ -194,6 +194,7 @@ abstract class BgaStubs
 
     protected function DbQuery(string $sql): void               { $this->db->DbQuery($sql); }
     protected function getCollectionFromDB(string $sql, bool $u = false): array { return $this->db->getCollectionFromDB($sql, $u); }
+    protected function getObjectListFromDB(string $sql, bool $u = false): array { return $this->db->getObjectListFromDB($sql, $u); }
     protected function getObjectFromDB(string $sql): ?array     { return $this->db->getObjectFromDB($sql); }
     protected function getUniqueValueFromDB(string $sql): mixed { return $this->db->getUniqueValueFromDB($sql); }
     protected function getIntFromDB(string $sql): int           { return $this->db->getIntFromDB($sql); }

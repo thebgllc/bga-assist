@@ -81,6 +81,16 @@ class ModernSampleGame extends BgaStubs
         $this->gamestate->nextState('continue');
     }
 
+    /**
+     * Every bid in order. player_id repeats across rows, so this must be
+     * getObjectListFromDB: getCollectionFromDB keys by the first column and
+     * would keep only each player's last bid.
+     */
+    public function getBidHistory(): array
+    {
+        return $this->getObjectListFromDB('SELECT player_id, amount FROM bid ORDER BY id');
+    }
+
     public function actPass(int $activePlayerId): void
     {
         $this->notify->all('playerPassed', '', ['player_id' => $activePlayerId]);

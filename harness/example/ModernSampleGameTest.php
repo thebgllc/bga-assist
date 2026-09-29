@@ -80,6 +80,31 @@ class ModernSampleGameTest extends BgaGameTestCase
         $this->thenPlayerDataIs(2, 'last_bid', 10);
     }
 
+    public function test_bid_history_keeps_rows_with_a_repeated_first_column(): void
+    {
+        // CC PATTERN: getCollectionFromDB keys by the first column, so repeats
+        // silently collapse; getObjectListFromDB returns every row
+        $this->givenDatabaseRows('bid', [
+            ['player_id' => 1, 'amount' => 4],
+            ['player_id' => 2, 'amount' => 6],
+            ['player_id' => 1, 'amount' => 9],
+        ]);
+
+        $this->assertSame(
+            [
+                ['player_id' => 1, 'amount' => 4],
+                ['player_id' => 2, 'amount' => 6],
+                ['player_id' => 1, 'amount' => 9],
+            ],
+            $this->game->getBidHistory()
+        );
+
+        // The trap: player 1's first bid is gone, with no error.
+        $keyed = $this->game->_getDb()->getCollectionFromDB('SELECT player_id, amount FROM bid ORDER BY id');
+        $this->assertCount(2, $keyed);
+        $this->assertSame(9, $keyed[1]['amount']);
+    }
+
     public function test_pass_notifies_and_stays_in_turn(): void
     {
         $this->givenActivePlayer(2)->givenState('playerTurn');

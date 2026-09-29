@@ -23,24 +23,40 @@ class BgaDatabaseFake
         $this->pdo->exec($sql);
     }
 
+    /**
+     * Keyed by the first selected column, like BGA's: rows sharing a first-column
+     * value silently overwrite each other (last one wins). With $bUniqueValue the
+     * value is the second column instead of the whole row.
+     */
     public function getCollectionFromDB(string $sql, bool $bUniqueValue = false): array
     {
         $stmt = $this->query($sql);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        if (!$bUniqueValue) {
-            return $rows;
-        }
-
-        $unique = [];
+        $keyed = [];
         foreach ($rows as $row) {
             $values = array_values($row);
-            if (count($values) >= 2) {
-                $unique[$values[0]] = $values[1];
+            if ($bUniqueValue) {
+                if (count($values) >= 2) {
+                    $keyed[$values[0]] = $values[1];
+                }
+                continue;
             }
+            $keyed[$values[0]] = $row;
         }
 
-        return $unique;
+        return $keyed;
+    }
+
+    /** Plain 0-indexed list, every row kept. With $bUniqueValue, a list of first-column values. */
+    public function getObjectListFromDB(string $sql, bool $bUniqueValue = false): array
+    {
+        $stmt = $this->query($sql);
+        if ($bUniqueValue) {
+            return $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
+        }
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function getObjectFromDB(string $sql): ?array

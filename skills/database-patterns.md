@@ -7,7 +7,8 @@ Use only the database vocabulary implemented in the harness. Do not use raw PDO 
 Use these methods exactly:
 
 - `DbQuery(string $sql): void`
-- `getCollectionFromDB(string $sql, bool $bUniqueValue = false): array`
+- `getCollectionFromDB(string $sql, bool $bUniqueValue = false): array` — keyed by the first column
+- `getObjectListFromDB(string $sql, bool $bUniqueValue = false): array` — plain 0-indexed list
 - `getObjectFromDB(string $sql): ?array`
 - `getUniqueValueFromDB(string $sql): mixed`
 - `getIntFromDB(string $sql): int`
@@ -34,13 +35,25 @@ $this->DbQuery("UPDATE card SET card_location = 'discard' WHERE card_id = " . (i
 
 ## Pattern: Read many rows
 
-Use `getCollectionFromDB` for list queries.
+`getCollectionFromDB` returns rows **keyed by the first selected column**. Rows that share a first-column value silently overwrite each other — you get fewer rows and no error, which quietly breaks adjacency lists, cycle detection, histories, anything with a repeated id. So:
+
+- put a unique column (the primary key) first, or
+- use `getObjectListFromDB($sql)`, a plain 0-indexed list, whenever the first column may repeat.
 
 ```php
+// Bad: a player with two bids has one row; the earlier bid is gone.
+$bids = $this->getCollectionFromDB('SELECT player_id, amount FROM bid ORDER BY id');
+
+// Good: every row kept.
+$bids = $this->getObjectListFromDB('SELECT player_id, amount FROM bid ORDER BY id');
+
+// Also good: unique column first, so the key is useful and nothing collapses.
 $cards = $this->getCollectionFromDB(
     "SELECT card_id, card_type, card_number, card_shading FROM card WHERE card_location = 'deck' ORDER BY card_id LIMIT 3"
 );
 ```
+
+The harness keys `getCollectionFromDB` the same way, so a collapsed row fails a test rather than a live table (see `ModernSampleGameTest::test_bid_history_keeps_rows_with_a_repeated_first_column`).
 
 If you need key => value shape and query returns two columns, use `bUniqueValue = true`.
 
@@ -183,3 +196,28 @@ if (!in_array($type, ['red', 'green', 'blue'], true)) {
 }
 $this->getCollectionFromDB("SELECT * FROM card WHERE card_type = '$type'");
 ```
+
+## dbmodel.sql: no trailing `--` comments, no apostrophes
+
+BGA splits `dbmodel.sql` into statements with its own parser before MySQL sees it. A trailing comment after a column definition can swallow that column, or everything after it. `CREATE TABLE IF NOT EXISTS` still reports success, and the first symptom is `Unknown column 'x' in 'field list'` at createGame or on the first action. Lattaque lost a Ph1 play-test on 2026-07-27 to `-- 10..1; 0 for Mine and Spy` after a column.
+
+- Comments go on their own lines, never after a column definition. The stock file's whole-line comments are fine. The blanket rule "no `--` at all" is also safe, with longer documentation kept in `docs/` instead.
+- No apostrophes anywhere in the file, comments included, because the splitter tracks quotes.
+
+```sql
+-- Bad: the comment can take the columns after it with it
+  `piece_rank` TINYINT NOT NULL, -- 10..1; 0 for Mine and Spy
+-- Good
+-- piece_rank: 10..1; 0 for Mine and Spy
+  `piece_rank` TINYINT NOT NULL,
+```
+
+Enforce it with a test that reads `dbmodel.sql` line by line (Entropy: `tests/SchemaDriftTest.php`).
+
+## Table names: never collide with BGA's own tables
+
+BGA creates its own tables before `dbmodel.sql` runs: `player`, `global`, `stats`, `gamelog`, `moves`, `replaysavepoint`, anything `bga_*`, plus the undo copies when `db_undo_support` is on. If you reuse one of those names, `CREATE TABLE IF NOT EXISTS` does nothing and reports no error, and your columns never exist. Prefixing every table with the game slug (`mygame_moves`, `mygame_board`) rules this out. Distinctive domain names like Entropy's `planet` and `biome` also work, but a generic name like `moves` or `log` does not.
+
+`dbmodel.sql` runs **once, when a table is created**. Redeploying a changed schema does nothing to existing tables. Quit every open instance and start a fresh table. Once the game is live, a schema change needs `upgradeTableDb` instead.
+
+Sources / further reading: [rbellec/claude-code-bga](https://github.com/rbellec/claude-code-bga) (MIT), TECHNICAL_NOTES.md.

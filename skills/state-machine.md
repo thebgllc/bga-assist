@@ -190,7 +190,7 @@ public function onEnteringState(int $activePlayerId): mixed
 
 An action is a public method annotated `#[PossibleAction]`. The framework enforces action permissions from the annotation — **do not call `checkAction` yourself**. Parameters are injected by name:
 
-- `int $activePlayerId` (active states) / `int $currentPlayerId` (multiactive) — the acting player.
+- `int $activePlayerId` (active states) / `int $currentPlayerId` (multiactive) — the acting player. These are magic parameters (below), never sent by the client.
 - Named scalars come from the JS `performAction('actX', {...})` args by matching name.
 - Complex payloads: type the param with `#[JsonParam] array $x` (arbitrary JSON) or `#[IntArrayParam] array $ids` (int list).
 
@@ -203,6 +203,40 @@ public function actPlayMelds(#[JsonParam] array $proposedMelds, int $activePlaye
 }
 ```
 
+## Magic Action Parameters
+
+The framework autowires these parameter names, so the client never sends them and cannot forge them. Don't reuse them for client args: `$args`, `$activePlayerId`/`$active_player_id`, `$activePlayerNo`, `$currentPlayerId`/`$current_player_id`, `$currentPlayerNo`.
+
+- **ACTIVE_PLAYER states:** take `int $activePlayerId`, and **never call `getCurrentPlayerId()`** in the act method. `zombie()` runs server-side with no browser behind it, so there is no current player and the call throws. Because the acting player arrives as a param, the zombie can call the act method directly with `return $this->actX($default, $playerId);`.
+- **MULTIPLE_ACTIVE_PLAYER states:** the reverse applies. There is no single active player to autowire, so the act method takes `int $currentPlayerId`. Put the shared logic in a helper that takes an explicit `$playerId`, and have both the act method and `zombie()` call it.
+
+```php
+#[PossibleAction]
+public function actChoose(int $cardId, int $currentPlayerId): mixed
+{
+    return $this->choose($currentPlayerId, $cardId);
+}
+
+public function zombie(int $playerId): mixed
+{
+    return $this->choose($playerId, $this->game->firstLegalCard($playerId));
+}
+
+private function choose(int $playerId, int $cardId): mixed { /* validate, mutate, setPlayerNonMultiactive */ }
+```
+
+## Every Active State Must Offer a Legal Action
+
+If the rules can produce a position where the active player has no legal move, the table hard-locks, and the only way out is a timeout or a zombie. Detect that position in the preceding GAME state and resolve it there (auto-place, auto-pass, skip the player) before activating anyone. The zombie soak test does **not** catch this for a live player, because the zombie would have been the one to pass. Write a harness test that reaches the empty position and checks that the GAME state resolved it.
+
+## Change the Active Player Only in GAME States
+
+Call `activeNextPlayer()` / `changeActivePlayer()` only from a GAME state's `onEnteringState`, and return a transition in the same call so the client learns who is active. An act method that changes the active player and stays in its state leaves every client showing the old player. The pattern is a small `NextPlayer` / `NextTurn` GAME state (see the `onEnteringState` example above).
+
+## End of Game: Score in a GAME State, Then 99
+
+State 99 is the framework's own end state, so don't try to hook it or redefine it. Compute final scores in a GAME state of your own (98 by convention, e.g. `EndScore`), write them with `$this->game->bga->playerScore->set($playerId, $score)` (or `->inc`), set end-of-game stats there too, and then `return 99;` (Entropy: `States/EndScore.php`).
+
 ## Zombie Handler Is Required
 
 Every `ACTIVE_PLAYER` / `MULTIPLE_ACTIVE_PLAYER` state **must** define `zombie($playerId)` that performs the minimal legal move, or an abandoned/eliminated player stalls the table forever. The simplest correct move is usually best (draw-and-finish, or pass):
@@ -213,6 +247,10 @@ public function zombie(int $playerId): mixed
     return $this->actDraw($playerId);   // take the cheapest legal turn and move on
 }
 ```
+
+**The Zombie Mode level is required metadata for alpha.** It is set in Game Metadata Manager → Metadata tab: 0 passing, 1 random, 2 greedy, 3 smart. If it is missing, "Request ALPHA status" is blocked. The game declares one number, so every state's `zombie()` must honestly match it. A random choice in one state plus a fixed default in another mixes levels 1 and 0. For level 1, `GameState::getRandomZombieChoice($choices)` picks a random key.
+
+Sources / further reading for the sections above: [rbellec/claude-code-bga](https://github.com/rbellec/claude-code-bga) (MIT), TECHNICAL_NOTES.md and SKILL.md.
 
 ## `getArgs()` Is Broadcast — Never Leak Private State
 
@@ -287,5 +325,9 @@ changed active player — then the real action path is under test, not a mock.
 - `GAME` state's `onEnteringState` returns nothing → game stuck.
 - `db_undo_support` switched on after alpha → existing tables error on Undo; decide it before.
 - Missing `zombie()` on an active state → abandoned tables never progress.
+- `getCurrentPlayerId()` in an ACTIVE_PLAYER act method → the zombie path throws. Use `$activePlayerId`.
+- An ACTIVE_PLAYER state with no legal move → hard lock. Resolve the position in the preceding GAME state.
+- Active player changed outside a GAME state, or without a transition → clients show the wrong player.
+- Zombie Mode level unset, or `zombie()` behaviour that doesn't match it → alpha request blocked, or the declared level misstates what the zombie does.
 - Private data placed in `getArgs()` → hand leak to opponents.
 - Calling `checkAction`/using `possibleactions` in a modern project → mixing framework versions (SKILL §2 forbids this).
