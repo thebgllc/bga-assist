@@ -56,6 +56,17 @@ Studio actually loads — rather than by SFTP-exclude tooling; an `sftp.json`
 exclude list is unnecessary overhead unless a specific deploy path actually
 needs it.
 
+**Production deploys (private alpha onward) are the developer's.** Alpha
+builds are built and deployed from the Studio Control Panel by the developer,
+not by BGA admins, so a fix can reach the publisher's alpha tables the same
+day. Every production deploy:
+
+1. Run `git diff <latest prod-* tag> -- dbmodel.sql`. Any change needs an
+   `upgradeTableDb` block first (skills/database-patterns.md →
+   "Post-release schema changes"), plus a heads-up to BGA.
+2. Build, check the build dialog for errors, deploy.
+3. `git tag prod-<build version>` (e.g. `prod-261003-1412`) and push the tag.
+
 ## Phased plan template
 
 Structure `docs/IMPLEMENTATION_PLAN.md` in phases. This shape has proven
@@ -205,4 +216,6 @@ private-alpha blockers are cleared.
       once, rather than propagating a guess.
 - [ ] All four pre-alpha submission gates pass (see above): final code +
       UX review, project-check tool, dry-run build, pre-alpha checklist
-- [ ] Private Alpha, then Public Alpha
+- [ ] Private Alpha, then Public Alpha. The first production deploy gets a
+      `prod-*` tag; from then on every `dbmodel.sql` change needs
+      `upgradeTableDb` (see "Deploy discipline")

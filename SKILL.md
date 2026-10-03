@@ -52,6 +52,7 @@ The rules below apply to both frameworks unless marked legacy-only:
 - Do not use superglobals in action logic.
 - Do not invent framework methods that are not present in the harness.
 - Never open your own DB transaction. BGA wraps each action in a transaction and rolls back on any thrown exception — issuing `START TRANSACTION` implicitly commits it. To abort a half-applied action, just `throw`. (See skills/database-patterns.md → "Transaction Model".)
+- From the first production deploy (private alpha included), `dbmodel.sql` is frozen for running tables. Every schema change also needs an idempotent, `DBPREFIX_`-prefixed block in `upgradeTableDb`, keyed on the last `prod-*` build tag. Globals, options and stats added later must tolerate being absent on older tables. (See skills/database-patterns.md → "Post-release schema changes".)
 - Trust nothing from the client. Re-derive the legal state from the DB and re-validate the entire submission server-side, even when the client staged and pre-checked it.
 - Deal/move records atomically (single `UPDATE ... ORDER BY RAND() LIMIT n`) rather than SELECT-then-UPDATE; and cast DB values (`(int)`) before arithmetic.
 

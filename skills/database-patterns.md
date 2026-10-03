@@ -218,6 +218,66 @@ Enforce it with a test that reads `dbmodel.sql` line by line (Entropy: `tests/Sc
 
 BGA creates its own tables before `dbmodel.sql` runs: `player`, `global`, `stats`, `gamelog`, `moves`, `replaysavepoint`, anything `bga_*`, plus the undo copies when `db_undo_support` is on. If you reuse one of those names, `CREATE TABLE IF NOT EXISTS` does nothing and reports no error, and your columns never exist. Prefixing every table with the game slug (`mygame_moves`, `mygame_board`) rules this out. Distinctive domain names like Entropy's `planet` and `biome` also work, but a generic name like `moves` or `log` does not.
 
-`dbmodel.sql` runs **once, when a table is created**. Redeploying a changed schema does nothing to existing tables. Quit every open instance and start a fresh table. Once the game is live, a schema change needs `upgradeTableDb` instead.
+`dbmodel.sql` runs **once, when a table is created**. Redeploying a changed schema does nothing to existing tables. In Studio, quit every open instance and start a fresh table. Once the game is on production, a schema change needs `upgradeTableDb` instead (next section).
 
 Sources / further reading: [rbellec/claude-code-bga](https://github.com/rbellec/claude-code-bga) (MIT), TECHNICAL_NOTES.md.
+
+## Post-release schema changes: `upgradeTableDb`
+
+"Post-release" starts at the **first deploy to production, private alpha included**. From then on, tables in progress keep the database they were created with while running the new code. A turn-based alpha table can live for weeks. A `dbmodel.sql` change with no upgrade gives those tables `Unknown column` errors or silently wrong reads on the first action after the deploy. This has been our weak spot, so treat it as a gate, not a guideline.
+
+**Every production deploy:**
+
+1. **Tag it.** The developer builds and deploys alpha versions from the Studio Control Panel ("Commit & build a new version now", then "Deploy to production"). Tag the commit with the build's version name: `git tag prod-261003-1412`. The tag is both the diff base for the next deploy and the number `upgradeTableDb` compares against.
+2. **Diff the schema before deploying.** `git diff $(git tag -l 'prod-*' | sort | tail -1) -- dbmodel.sql`. Empty → nothing to do. Anything else → every change gets a block in `upgradeTableDb` **and** stays in `dbmodel.sql` (new tables come from `dbmodel.sql`; existing tables come from the upgrade).
+3. **Tell BGA** before deploying a schema change, so they can pause real-time tables during the update.
+
+**The block:**
+
+```php
+public function upgradeTableDb($from_version)
+{
+    // $from_version is the build the table's database was created or last upgraded on,
+    // as a number: build "261003-1412" is 2610031412.
+
+    // player_stars added after prod-261003-1412.
+    if ($from_version <= 2610031412) {
+        $exists = $this->getUniqueValueFromDB("SHOW COLUMNS FROM `player` LIKE 'player_stars'");
+        if (empty($exists)) {
+            $this->applyDbUpgradeToAllDB(
+                "ALTER TABLE DBPREFIX_player ADD `player_stars` TINYINT UNSIGNED NOT NULL DEFAULT 0"
+            );
+        }
+    }
+
+    // rrt_objective table added after prod-261010-0930.
+    if ($from_version <= 2610100930) {
+        $this->applyDbUpgradeToAllDB(
+            "CREATE TABLE IF NOT EXISTS DBPREFIX_rrt_objective (
+                `objective_id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                `player_id` INT UNSIGNED NOT NULL,
+                PRIMARY KEY (`objective_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8"
+        );
+    }
+}
+```
+
+- **Threshold = the last production build that did not have the change** (the latest `prod-*` tag at the time you write the block), compared with `<=`. Tables created on a newer build already have it from `dbmodel.sql`.
+- **`DBPREFIX_` on every table name** in the SQL passed to `applyDbUpgradeToAllDB`, never the bare name. BGA keeps copies of the game tables (undo savepoints, replays), and the prefix is how the upgrade reaches them too. The `SHOW COLUMNS` guard reads the live table, so it uses the bare name.
+- **Idempotent.** Guard `ALTER ... ADD` with `SHOW COLUMNS ... LIKE`, and use `CREATE TABLE IF NOT EXISTS`. Rerunning the block must be harmless (BGA's own example does this).
+- **Additive only.** New columns are `NOT NULL DEFAULT <value>`, and the code treats that default as "the old behaviour". Never rename or drop a column a running table might still need: add the new one, backfill it in the same block with an `UPDATE DBPREFIX_...`, and stop reading the old one.
+- **Append, never edit.** Old blocks stay exactly as deployed. A table several versions behind runs every block in order.
+- **Test the upgrade path, not just new tables.** Playing in Studio only exercises `dbmodel.sql`. Before deploying, keep a Studio table created **before** the schema change, run the block's SQL by hand against that table's database (Studio's database link, with `DBPREFIX_` removed), run it a second time to prove it is idempotent, then play on that table with the new code.
+
+### Same trap, not schema: state that running tables don't have
+
+Anything `setupNewGame` creates is missing on tables that started before the deploy.
+
+- **Globals added later:** read with a default, `$this->globals->get('name', $default)`. Never assume `setupNewGame` set them.
+- **Game options added later:** `$this->tableOptions->get($id)` returns null on older tables, so treat null as the old behaviour. Tell BGA which value arena mode should use. Never change or remove an option id, because that breaks arena configuration.
+- **Stats added later:** running tables never ran `init` for them, so ongoing values will not be correct (BGA's words). Never remove or rename a stat, because its history is lost.
+- **States:** never renumber or remove a state a running table could be sitting in. Add new states with new ids, and tell BGA if the flow changes.
+- **Material ids:** tables store ids (tile, card, objective definitions). Changing what an existing id means changes every game in progress. Append new ids instead.
+
+Source: BGA Studio docs, [Post-release phase](https://en.doc.boardgamearena.com/Post-release_phase); signatures checked against `_ide_helper.php` (`upgradeTableDb($from_version)`, `applyDbUpgradeToAllDB(string $sql)`, `Globals::get(string $name, mixed $defaultValue = null, ?string $class = null)`).
