@@ -241,3 +241,18 @@ When work touches these topics, consult these files and follow their guidance:
 - Project lifecycle, repo layout, deploy discipline, phased planning, soak
   testing, and the release checklist (do this from Phase 0, not as a
   retrofit): skills/project-lifecycle.md
+
+## 9) BoardGameGeek Lookups
+The BGG XML API v2 requires a bearer token (`https://boardgamegeek.com/applications`); without it
+every call is a 401, and plain page fetches of boardgamegeek.com are 403. Keep the token in this
+repo's `.env` as `BGG_API_AUTH_TOKEN` (copy `.env.example`; `.env` is git- and npm-ignored) and
+never echo or commit it.
+
+```bash
+set -a; . .env; set +a
+curl -s -H "Authorization: Bearer $BGG_API_AUTH_TOKEN" "https://boardgamegeek.com/xmlapi2/thing?id=<id>&stats=1"
+```
+
+Useful endpoints: `thing?id=` (metadata, designer, publisher id for gameinfos, videos),
+`forumlist?id=&type=thing` → `forum?id=` → `thread?id=` (rules questions and, for unreleased
+games, the designer's draft rulebook link).

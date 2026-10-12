@@ -1,0 +1,9 @@
+vendor/
+composer.lock
+composer.phar
+.phpunit.result.cache
+phpunit.xml
+test.sh
+.github/
+.env
+.env.*
