@@ -198,6 +198,33 @@ expels under automation. The `playToEnd` button opens a parameter dialog
 (`debugParamDlgApply`); the cap is deliberate, because the framework's zombie
 loop-guard trips when too many zombie turns run in one request.
 
+Studio mechanics for the "Special testing" items, all driven from Chrome
+(learned on whatsmywordjcb, 2026-10-21):
+
+- **Minified JS/CSS:** the two buttons on the manage page
+  (`studiogame?game=<name>`) back up and OVERWRITE the Studio copy with a
+  minified one. Test, then click both **Revert** before the next deploy;
+  otherwise the deploy's readback diff fails, or worse, a later Revert
+  restores a stale backup over a newer deploy.
+- **Dark mode:** the toggle next to Sound in the in-game hamburger menu
+  sets `html[data-theme="dark"]` and turns the inherited body text light.
+  Any game panel with its own light background must pin its text colour
+  (`color: #222` on the panel), or letters and numbers vanish. Check it:
+  it is the one checklist item that found a real bug.
+- **Spectator:** `tableview?table=N&as=<id>` with the "Test spectator"
+  seat's id (`#visitor_player_<id>` in the spectator list), then confirm
+  from `gameui.gamedatas` that nothing private is present.
+- **In-game replay:** a log entry's "Replay from this move" reloads the
+  game iframe at `getGameStandardUrl()` + `replayFrom=<move id>`; the
+  button is a no-op when every log line maps to the current move, so run
+  a few `playOneMove` first. The **archived replay of a finished game**
+  (`gamereview?table=N`) may fail on Studio with "Unable to find game
+  archive" for every table; that is Studio's archive generation, record it
+  as not verifiable and move on.
+- **Express start** on `gamepanel?game=<name>` creates and opens a
+  2-seat realtime table in one click; `Express STOP` in the in-game menu
+  ends a test table (a stale open table silently blocks the next create).
+
 Only after all four pass: submit for private Alpha, then public Alpha once
 private-alpha blockers are cleared.
 
