@@ -215,6 +215,10 @@ Debugging aids:
   The "BGA unexpected exceptions logs" view is account-global, not per game.
 - Any `public function debug_*()` on `Game` gets an auto-generated button in the
   `#toggleDebugFunctionsPanel`. Drive it by script with `document.getElementById('debug_x').click()`.
+  A method with parameters opens a dialog first; apply it with `debugParamDlgApply`. Keep
+  `debug_playOneMove()` and a bounded `debug_playToEnd(int $cap)` (both over
+  `$this->bga->debug->playUntil()`) on every game: they are the live zombie test
+  (skills/project-lifecycle.md → "Pre-alpha submission gates").
 - The goToState panel can be scripted too: fill `debugParamDlg-parameter-state-input`, then click
   `debugParamDlgApply`.
 - If the end-game stats panel shows "Go premium", click Become premium on the Studio account. It is free in dev.

@@ -172,12 +172,31 @@ them into one vague "testing pass," each catches different things:
    pass can't see.
 4. **BGA's pre-alpha checklist.** BGA's own submission checklist (metadata,
    options, stats, translations, etc.) — best run by Claude Code, since it's
-   a local/tooling-heavy pass through the repo and BGA's requirements docs,
-   not something that needs a person driving Studio's UI. Include the
-   **Zombie Mode level** (Game Metadata Manager → Metadata tab: 0 passing /
-   1 random / 2 greedy / 3 smart). While it is unset, "Request ALPHA status"
-   is blocked, and it must honestly match what every state's `zombie()` does
-   (skills/state-machine.md → "Zombie Handler Is Required").
+   a local/tooling-heavy pass through the repo and BGA's requirements docs.
+   Include the **Zombie Mode level** (Game Metadata Manager → Metadata tab:
+   0 passing / 1 random / 2 greedy / 3 smart). While it is unset, "Request
+   ALPHA status" is blocked, and it must honestly match what every state's
+   `zombie()` does (skills/state-machine.md → "Zombie Handler Is Required").
+
+   **The Game Metadata Manager is Claude's job too, through Chrome.** Draft
+   the text in `docs/METADATA.md` first (short and long description, how the
+   online version differs from the box, tips, the Metadata tab's fields),
+   then drive the Studio form with the Claude in Chrome tools from the
+   control panel (`controlpanelgames?game=<name>`) and paste it in. The
+   dry-run build and the "Reload ..." buttons on the control panel are
+   scriptable the same way; none of this needs a person at the keyboard.
+   Only the metadata *images* (box, banner, icon) wait on the art.
+
+Live zombie check, done from the same browser session: keep
+`debug_playOneMove()` and a **bounded** `debug_playToEnd(int $cap = 30)` on
+`Game`, both over `$this->bga->debug->playUntil()`. Their auto-generated
+buttons in the Studio debug panel pump every state's real `zombie()` through
+the actual state machine, so a whole zombie game is two clicks. Do not try
+to expel a seat by script: BGA refuses a scripted `quitgame`, and the
+clock-expiry "Skip turn of players out of time" control warns but never
+expels under automation. The `playToEnd` button opens a parameter dialog
+(`debugParamDlgApply`); the cap is deliberate, because the framework's zombie
+loop-guard trips when too many zombie turns run in one request.
 
 Only after all four pass: submit for private Alpha, then public Alpha once
 private-alpha blockers are cleared.
