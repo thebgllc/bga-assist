@@ -139,6 +139,48 @@ game-option variants, over many seeds. It should assert:
 On failure, print the seed/config and a move trace so the exact game
 replays. See `harness/example/` for a worked pattern to adapt.
 
+## Bot persona roster (tuning sims, and soaks where it fits)
+
+A tuning simulator with one "greedy" bot answers one question. The
+scorecard in Phase 2 asks five, and each needs a different *policy* at the
+table. Build the bots as a roster of playtest personas, each written to
+break the game in one specific way, and name the metric each one feeds.
+These are policies, not difficulty levels: a Turtle is not a weaker
+Min-Maxer, it is a different player.
+
+| Persona | Policy | What it tests | Scorecard metric it feeds |
+|---|---|---|---|
+| **Aggro / Speedster** | Rush the end trigger, take every high-variance line, maximise tempo | Early-game balance and pacing | Can it end the game before the field has executed a plan? → game-length floor, rush win-rate |
+| **Turtle** | Hoard, defend, minimise risk, act only when the payoff is certain | Stagnation and catch-up | Two Turtles at one table: does the game still end, and in how many rounds? → stall rate, need for an end trigger |
+| **Min-Maxer** | The skill ceiling: search/expectimax, or the best hand-built heuristic | Dominant strategies | Win-rate vs every other persona; if one line wins regardless of the field, the math needs a redesign → skill:luck band |
+| **Chaos Agent** | Random legal move, spite moves, kingmaking (help whoever is losing or hurt whoever is winning) | Resilience, kingmaking exposure | How far does one Chaos seat swing the finishing order of the *other* seats? → noise floor, kingmaking index |
+| **Sandboxer** | Chase one theme: collect all of one component type, max one track, ignore VP | Fun factor, dead-weight content | Does a mono-focus line ever score, or is it strictly punished? → content usage, "no dead-weight" criterion |
+
+Run the roster in **mixed tables**, not only mirror matches. The telling
+seats are: Turtle+Turtle (stalemate), Aggro vs three Turtles (rush), one
+Chaos seat among three Min-Maxers (kingmaking swing on the non-Chaos
+seats), and one Sandboxer vs the field (is the theme-chaser ever in it?).
+Mirror matches still matter for the Min-Maxer, because a mirror of the
+ceiling bot sets the game-length and luck baselines.
+
+Reuse where it already exists: Baseline's `Random → Greedy → Expectimax`
+ladder covers Chaos / Min-Maxer-lite / Min-Maxer; Salvage Divers'
+`Core/Policy` roster already has the Turtle (`RiskThresholdStop`,
+`AlwaysLeave`), the Aggro (`TargetDepthStop`, `EndRushHoarder`), the
+Sandboxer (`SingleItemFocus`) and a standings-aware kingmaker
+(`StandingsAware`). Add a persona only to answer a scorecard question it
+owns; a persona nobody reads a number from is noise.
+
+**Zombies.** The BGA zombie is the Chaos Agent at level 1 (random legal
+move) or the Turtle at level 0 (pass/minimal). Pick the one the Zombie Mode
+metadata declares and keep every state honest to it. The soak above is an
+all-Chaos table, which hides stalls because a random player eventually
+stumbles into the end trigger. Where the engine lets a harness seat a
+persona, run a **Turtle soak** too (one Turtle seat, rest zombies, then
+Turtle+Turtle): if that table does not end within the action cap, a live
+pair of conservative humans will not end it either, and the fix is an end
+trigger or an incentive, not a zombie tweak.
+
 ## Static analysis (optional, advisory)
 
 PHPStan, PHP-CS-Fixer, Rector and PHPMD can complement the harness, but treat them as advice. They must never gate a deploy, because they can't see the framework. The one hard-won rule, from rbellec's Rector incident: Rector's `deadCode` set reads an empty stub `Table::__construct() {}` as the truth and **deletes `parent::__construct()` from `Game.php`**. The game then fails to launch with no error, while PHPStan and PHPMD stay green. If you use Rector:

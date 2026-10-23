@@ -243,8 +243,9 @@ When work touches these topics, consult these files and follow their guidance:
 - Scaffold templates: skills/scaffold-templates.md
 - i18n / translation (do it up front): skills/i18n.md
 - Project lifecycle, repo layout, deploy discipline, phased planning, soak
-  testing, and the release checklist (do this from Phase 0, not as a
-  retrofit): skills/project-lifecycle.md
+  testing, the bot persona roster for tuning sims (Aggro / Turtle /
+  Min-Maxer / Chaos / Sandboxer), and the release checklist (do this from
+  Phase 0, not as a retrofit): skills/project-lifecycle.md
 
 ## 9) BoardGameGeek Lookups
 The BGG XML API v2 requires a bearer token (`https://boardgamegeek.com/applications`); without it
