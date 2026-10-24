@@ -118,6 +118,9 @@ itself across multiple games:
   for alpha: a **final code review and UX review** (see below), then three
   distinct BGA checks — the **project-check tool**, a **dry-run code build**,
   and BGA's **pre-alpha checklist** — then private Alpha, then public Alpha.
+  Public Alpha is also the milestone at which the game gets linked from
+  thebgllc.com — for licensed adaptations too, as a development example (see
+  the last item of the release checklist).
 
 Not every game needs every phase at this weight — a small game may collapse
 Phases 1–2 or skip the simulator entirely. But the **interleaving lesson in
@@ -307,3 +310,19 @@ private-alpha blockers are cleared.
 - [ ] Private Alpha, then Public Alpha. The first production deploy gets a
       `prod-*` tag; from then on every `dbmodel.sql` change needs
       `upgradeTableDb` (see "Deploy discipline")
+- [ ] **The day the game reaches public Alpha, link to it from thebgllc.com**
+      — a card on the landing page's game grid pointing at the BGA game page
+      (`boardgamearena.com/gamepanel?game=<slug>`), in the
+      [thebgllc/thebgllc.com](https://github.com/thebgllc/thebgllc.com) repo
+      (local checkout `~/dev/thebgllc-site`, deployed with its `deploy.sh
+      --live`). For an original game this is the card the landing-page step
+      above already created; just switch its copy from "coming soon" to the
+      live link. For a **licensed adaptation of another publisher's game**,
+      add the card anyway, but as a development example: name the designer
+      and publisher, say plainly that we built the BGA adaptation for them,
+      and link straight to BGA — no per-game page on our site, since the game
+      is theirs. Public Alpha is the moment because that is when the BGA link
+      first works for anyone who opts in as an alpha tester; before that it
+      is a dead link to outsiders. Remember the site's `.card:nth-child(N)`
+      fade-in rule for the new card. First done for Muster: Raise the Banners
+      (Play Monkey Games), 2026-10-24.
