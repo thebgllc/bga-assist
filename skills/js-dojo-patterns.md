@@ -92,6 +92,12 @@ For turns where the player composes a move (selecting/dragging/rearranging) befo
 - **FLIP animation with stable ids.** Give each card a stable `data-card-id` that survives re-render. Record `getBoundingClientRect()` for every card before re-render (First), re-render (Last), then translate each element from its old position to its new one and animate the transform to zero (Invert/Play). This animates moves without tying animation to DOM identity.
 - **`ebg.stock` is unavailable** in the ES-module `export class Game`; render cards with vanilla DOM (see the KEY GOTCHA in project notes). These patterns assume vanilla DOM elements you own.
 
+## Vanilla-DOM Gotchas Seen on Studio
+
+- **A `position: absolute; inset: 0` child needs a positioned parent.** A label span inside a `position: static` token stretched over the whole page and swallowed every click on the board; nothing errored. Give the parent `position: relative`. Diagnose with `document.elementFromPoint(x, y)` inside the game iframe (Byline, 2026-10-24).
+- **`getAllDatas` is the only source on reload.** If a notification moves pieces that the server keeps in place (Byline's hour discs stay on the board until clean-up), the live view and the reloaded view disagree. Mirror the server's model; mark, don't move.
+- **The game runs in an iframe** (`/1/<game>?table=N`). From the page, reach it with `document.querySelector('iframe').contentWindow.gameui`; the modern `Game` instance hangs off `gameui.GameModule`. Test seats open with `tableview?table=N&as=<player id>`.
+
 ## Testability Rule
 
 Keep core gameplay calculations in pure utility functions and test with Jest.

@@ -331,3 +331,5 @@ changed active player — then the real action path is under test, not a mock.
 - Zombie Mode level unset, or `zombie()` behaviour that doesn't match it → alpha request blocked, or the declared level misstates what the zombie does.
 - Private data placed in `getArgs()` → hand leak to opponents.
 - Calling `checkAction`/using `possibleactions` in a modern project → mixing framework versions (SKILL §2 forbids this).
+- A `Game` property named `$players` → fatal at createGame: `Cannot redeclare non-readonly property Bga\GameFramework\Table::$players as readonly Game::$players`. The framework's `Table` already owns `$players` (undocumented in `_ide_helper.php`); name a player service `$seats` or similar. Byline, 2026-10-24. Declare `public array $players = [];` on the test shim's `Table` so the collision fails locally.
+- A deleted state class still on Studio → `Invalid id for state class X (already used by another state)` at createGame. The SFTP deploy only adds and overwrites; after deleting or renaming a state (the skeleton's `PlayerTurn`/`NextPlayer` included), `rm` it on Studio by hand.

@@ -214,6 +214,8 @@ BGA splits `dbmodel.sql` into statements with its own parser before MySQL sees i
 
 Enforce it with a test that reads `dbmodel.sql` line by line (Entropy: `tests/SchemaDriftTest.php`).
 
+**No MySQL reserved words as column names.** `row`, `rank`, `groups`, `order`, `key`, `index` and the window-function words (`lead`, `lag`, `over`, `rows`, `row_number`) are reserved in MySQL 8; `INSERT INTO t (grid, row, col, ...)` fails with a syntax error at createGame. The in-memory SQLite test shim accepts all of them, so the suite stays green. Byline lost its first Studio launch to `row` (2026-10-24); its `tests/SchemaTest.php` now greps `dbmodel.sql` for the list.
+
 ## Table names: never collide with BGA's own tables
 
 BGA creates its own tables before `dbmodel.sql` runs: `player`, `global`, `stats`, `gamelog`, `moves`, `replaysavepoint`, anything `bga_*`, plus the undo copies when `db_undo_support` is on. If you reuse one of those names, `CREATE TABLE IF NOT EXISTS` does nothing and reports no error, and your columns never exist. Prefixing every table with the game slug (`mygame_moves`, `mygame_board`) rules this out. Distinctive domain names like Entropy's `planet` and `biome` also work, but a generic name like `moves` or `log` does not.
