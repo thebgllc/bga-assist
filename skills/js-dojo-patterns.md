@@ -112,6 +112,11 @@ For turns where the player composes a move (selecting/dragging/rearranging) befo
   frame (e.g. 1510x812) is the window's `innerWidth x innerHeight` (1536x826) scaled down, so
   multiply `getBoundingClientRect()` centres by `frameWidth / innerWidth` before clicking, or
   an 18px grid cell click lands one cell to the right.
+- **`node --check Game.js` does not parse the client as a module.** A duplicate `const` in one
+  function passed the check and then threw `Identifier 'm' has already been declared` on
+  Studio, taking every table of the game down. Copy the file to `.mjs` and `node --check` that
+  (Byline's `tools/deploy.sh` does it before uploading). Runtime order errors (temporal dead
+  zone) still need a page load.
 - **The game runs in an iframe** (`/1/<game>?table=N`). From the page, reach it with `document.querySelector('iframe').contentWindow.gameui`; the modern `Game` instance hangs off `gameui.GameModule`. Test seats open with `tableview?table=N&as=<player id>`.
 
 ## Testability Rule
