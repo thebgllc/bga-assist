@@ -104,6 +104,14 @@ For turns where the player composes a move (selecting/dragging/rearranging) befo
   `notif_*` handler rebuilds token strips or card rows with `innerHTML`, call the active
   state's `refresh()` afterwards (`refreshActive()`), and keep `activeState` null for
   non-active viewers so that refresh never shows them buttons.
+- **The action promise can resolve before the notifications land.** A `performAction(...)
+  .then(recompute)` that reads gamedatas sees the pre-action state, so a prompt that depends on
+  a free action (verify, then file) stays stale. Derive the prompt's state from gamedatas inside
+  `refresh()` itself and let the notification-driven refresh correct it.
+- **Studio screenshot coordinates are not CSS pixels.** With the browser tool, the screenshot
+  frame (e.g. 1510x812) is the window's `innerWidth x innerHeight` (1536x826) scaled down, so
+  multiply `getBoundingClientRect()` centres by `frameWidth / innerWidth` before clicking, or
+  an 18px grid cell click lands one cell to the right.
 - **The game runs in an iframe** (`/1/<game>?table=N`). From the page, reach it with `document.querySelector('iframe').contentWindow.gameui`; the modern `Game` instance hangs off `gameui.GameModule`. Test seats open with `tableview?table=N&as=<player id>`.
 
 ## Testability Rule
