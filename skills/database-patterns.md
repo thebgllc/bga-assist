@@ -283,3 +283,11 @@ Anything `setupNewGame` creates is missing on tables that started before the dep
 - **Material ids:** tables store ids (tile, card, objective definitions). Changing what an existing id means changes every game in progress. Append new ids instead.
 
 Source: BGA Studio docs, [Post-release phase](https://en.doc.boardgamearena.com/Post-release_phase); signatures checked against `_ide_helper.php` (`upgradeTableDb($from_version)`, `applyDbUpgradeToAllDB(string $sql)`, `Globals::get(string $name, mixed $defaultValue = null, ?string $class = null)`).
+
+## Score Columns Go Through the Framework Counters
+
+The Studio dry-run build warns on any mention of `player_score` / `player_score_aux` in game
+SQL, even a plain SELECT. Read coins with `$this->bga->playerScore->get($pid)` and write the
+tie-breaker with `$this->bga->playerScoreAux->set($pid, $value)`; keep the game's own columns
+(`byline_reputation` and the like) in the SELECT. The test shim needs a `playerScoreAux` fake
+beside `playerScore` (Byline `tests/bootstrap.php`). Found on Byline's first dry run, 2026-10-25.
