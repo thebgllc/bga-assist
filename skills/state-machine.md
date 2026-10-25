@@ -333,3 +333,18 @@ changed active player — then the real action path is under test, not a mock.
 - Calling `checkAction`/using `possibleactions` in a modern project → mixing framework versions (SKILL §2 forbids this).
 - A `Game` property named `$players` → fatal at createGame: `Cannot redeclare non-readonly property Bga\GameFramework\Table::$players as readonly Game::$players`. The framework's `Table` already owns `$players` (undocumented in `_ide_helper.php`); name a player service `$seats` or similar. Byline, 2026-10-24. Declare `public array $players = [];` on the test shim's `Table` so the collision fails locally.
 - A deleted state class still on Studio → `Invalid id for state class X (already used by another state)` at createGame. The SFTP deploy only adds and overwrites; after deleting or renaming a state (the skeleton's `PlayerTurn`/`NextPlayer` included), `rm` it on Studio by hand.
+
+## Action Parameters Seen on Studio (Byline, 2026-10-24)
+
+- **The client omits an empty array from the request.** `performAction('actX', { ids: [] })`
+  sends no `ids` at all, and the framework answers `parameter ids is mandatory` (a fatal, not
+  a UserException). Every `#[IntArrayParam] array` that may legitimately be empty needs a
+  default, placed after the required parameters so PHP does not warn:
+  `function actBar(string $option, int $activePlayerId, #[IntArrayParam] array $tokenIds = [])`.
+  The framework injects by name, so `$activePlayerId` need not be last.
+- **`debug_*` methods are not reachable through `performAction`** (the client refuses them
+  with "This move is not authorized now"). They run only from the Studio debug panel (bug
+  icon), where a method with parameters opens an in-page dialog
+  (`#debugParamDlg-parameter-<name>-input`, then the Apply button). A `debug_giveToken(type,
+  playerId, verified)` helper that moves a token from the pool is the fastest way to reach a
+  prompt that needs specific holdings.

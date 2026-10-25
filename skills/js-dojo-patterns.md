@@ -96,6 +96,14 @@ For turns where the player composes a move (selecting/dragging/rearranging) befo
 
 - **A `position: absolute; inset: 0` child needs a positioned parent.** A label span inside a `position: static` token stretched over the whole page and swallowed every click on the board; nothing errored. Give the parent `position: relative`. Diagnose with `document.elementFromPoint(x, y)` inside the game iframe (Byline, 2026-10-24).
 - **`getAllDatas` is the only source on reload.** If a notification moves pieces that the server keeps in place (Byline's hour discs stay on the board until clean-up), the live view and the reloaded view disagree. Mirror the server's model; mark, don't move.
+- **A state's `refresh()` must not reset the selection it renders.** Byline's planning state
+  cleared `tokenSel = []` at the top of `refresh()`, and `toggleToken()` called `refresh()`
+  after pushing the id, so no token could ever be selected. Reset selections in
+  `onEnteringState` (and when the prompt changes mode), never in the re-render.
+- **Re-rendering a strip after a notification drops the prompt's highlights.** When a
+  `notif_*` handler rebuilds token strips or card rows with `innerHTML`, call the active
+  state's `refresh()` afterwards (`refreshActive()`), and keep `activeState` null for
+  non-active viewers so that refresh never shows them buttons.
 - **The game runs in an iframe** (`/1/<game>?table=N`). From the page, reach it with `document.querySelector('iframe').contentWindow.gameui`; the modern `Game` instance hangs off `gameui.GameModule`. Test seats open with `tableview?table=N&as=<player id>`.
 
 ## Testability Rule
