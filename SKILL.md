@@ -242,7 +242,9 @@ When work touches these topics, consult these files and follow their guidance:
 - Notifications contract: skills/notifications.md
 - Scaffold templates: skills/scaffold-templates.md
 - i18n / translation (do it up front): skills/i18n.md
-- Project lifecycle, repo layout, deploy discipline, phased planning, soak
+- Project lifecycle, repo layout, where to find and how to study other BGA
+  implementations (workspace, Studio SFTP shares, public repos), deploy
+  discipline, phased planning, soak
   testing, the bot persona roster for tuning sims (Aggro / Turtle /
   Min-Maxer / Chaos / Sandboxer), and the release checklist (do this from
   Phase 0, not as a retrofit): skills/project-lifecycle.md

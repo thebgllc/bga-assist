@@ -48,6 +48,53 @@ When adapting someone else's game, the rulebook will have gaps. **Don't block im
 
 Adapted from [rbellec/claude-code-bga](https://github.com/rbellec/claude-code-bga) (MIT).
 
+## Studying other implementations (do this at plan time)
+
+Before deciding how a mechanic will work on BGA, find a game that already runs it on BGA and read
+that code. Learned on Rival Restaurants (2026-10-29), where the first plan cited a project whose
+stack had been designed but never built, and named two "BGA reference games" that are not on BGA.
+
+**Where the code is, in the order to look:**
+
+1. **This workspace.** The sibling projects under `~/dev-bga/`, `_archive/` (dead projects, live
+   patterns) and `samples/` (downloaded references). `grep -rl` for the mechanic's words across
+   `*/modules/php` and `*/docs` first; a state file named `Bidding.php` or `Trading.php` is worth
+   more than a plan that mentions auctions.
+2. **Studio's own sharing.** BGA lets a developer request read access to other projects, published
+   games included. Once granted, the project appears as a folder in the **SFTP root** of the Studio
+   account, next to our own games. Pull it with
+   `printf 'get -r /<game> <game>\n' | sftp -b - -i ~/.ssh/bga_studio -P 2022 jcb@1.studio.boardgamearena.com`
+   into `~/dev-bga/samples/_external/<game>`. Some titles are **restricted** and cannot be shared
+   (Catan was); some games are not on BGA at all, so check the game list before naming one.
+   Shares that have proved valuable: Bohnanza (two projects, live negotiation in a multiactive
+   state), Seven Wonders (simultaneous choice with private args), Colt Express (queued effects with
+   a prompt per kind).
+3. **Public repos.** The wiki's [BGA Code Sharing](https://en.doc.boardgamearena.com/BGA_Code_Sharing)
+   page (about 60 games), the GitHub topic `boardgamearena`, and `gh search repos` / `gh search code`
+   with the action name you expect (`actBid`, `setPlayersMultiactive`). Clone `--depth 1` into
+   `samples/_external/`. Each repo keeps its own licence and the art in it is the publisher's: read
+   for patterns, never copy wholesale.
+
+**How to read one, in twenty minutes:**
+
+- List the states first: `grep -o "'name' => '[A-Za-z]*'" states.inc.php` (legacy) or
+  `ls modules/php/States` (modern). The state names tell you the shape of the game loop before any
+  code does.
+- Then the **multiactive** states, and for each: how the active set is chosen
+  (`setPlayersMultiactive` with which list, and what recomputes it), what the zombie does, and
+  what ends the state.
+- Then the action methods for the mechanic you came for, and how the server re-validates them.
+- Read `misc/*.md` or `docs/*.md` if the author left a design note; Bohnanza's trading redesign and
+  Entropy's ARCHITECTURE.md explain more than the code.
+- Note the framework: patterns transfer between legacy and modern, APIs do not. A legacy
+  `possibleactions` list becomes `#[PossibleAction]`; `checkAction(false)` plus
+  `checkPossibleAction` is how modern games let any player act inside a multiactive state.
+
+**Record it where it will be used.** The implementation plan gets a "Reference implementations, by
+mechanic" table: mechanic, file paths, one line on what the file shows. `samples/_external/README.md`
+lists every pulled project, where it came from and why it is there. A citation nobody has opened is
+not a reference: if you did not read the file, do not put it in the table.
+
 ## Deploy discipline
 
 **`docs/`, `tools/`, and `tests/` never deploy to BGA Studio.** They're
