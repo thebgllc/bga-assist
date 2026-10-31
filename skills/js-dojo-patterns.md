@@ -47,6 +47,30 @@ export class PlayState {
 }
 ```
 
+## Multiactive States: Build the Active UI from Both Hooks
+
+For a `MULTIPLE_ACTIVE_PLAYER` state the framework calls `onEnteringState(args, isCurrentPlayerActive)`
+**before anyone is active** on a live transition, then `onPlayerActivationChange(args, true)` once the
+player is. On a page reload both arrive with `true`. So:
+
+- UI built only in `onEnteringState` never appears for a player already on the page (they see the
+  "You must ..." title with nothing to click until they refresh). Seen on Studio, Rival Restaurants
+  table 998632.
+- UI built in both hooks naively appears twice on reload. Seen on table 998751.
+
+Pattern: an idempotent `arm()` that tears down first, called from both hooks when active, and a
+`disarm()` when not (which also clears the buttons once this player has answered):
+
+```javascript
+onEnteringState(args, active) { this.passive(args); if (active) this.arm(args); else this.disarm(); }
+onPlayerActivationChange(args, active) { this.passive(args); if (active) this.arm(args); else this.disarm(); }
+arm(args) { this.disarm(); this.bga.statusBar.setTitle?.(...); this.bga.statusBar.addActionButton(...); /* listeners */ }
+disarm() { this.bga.statusBar.removeActionButtons?.(); /* remove listeners, highlights, panels */ }
+onLeavingState() { this.disarm(); }
+```
+
+`ACTIVE_PLAYER` states are not affected: activation is known when `onEnteringState` runs.
+
 ## Action Dispatch Pattern
 
 Use framework actions instead of ad-hoc network code:
