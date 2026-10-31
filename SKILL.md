@@ -242,9 +242,9 @@ When work touches these topics, consult these files and follow their guidance:
 - Notifications contract: skills/notifications.md
 - Scaffold templates: skills/scaffold-templates.md
 - i18n / translation (do it up front): skills/i18n.md
-- UX feedback that changes how a phase works: settle it in plan mode first (options,
-  waits per day, decision recorded), then build once: skills/project-lifecycle.md
-  "UX work: settle the design in plan mode before building"
+- UX feedback that changes how a phase works: answer, propose options with their
+  cost in waits per day, let the designer decide, record it, then build once:
+  skills/project-lifecycle.md "UX work: propose, let the designer decide, then build"
 - Project lifecycle, repo layout, where to find and how to study other BGA
   implementations (workspace, Studio SFTP shares, public repos), deploy
   discipline, phased planning, soak

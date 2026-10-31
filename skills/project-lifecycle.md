@@ -95,28 +95,28 @@ mechanic" table: mechanic, file paths, one line on what the file shows. `samples
 lists every pulled project, where it came from and why it is there. A citation nobody has opened is
 not a reference: if you did not read the file, do not put it in the table.
 
-## UX work: settle the design in plan mode before building
+## UX work: propose, let the designer decide, then build
 
 Live-table feedback comes one message at a time, and the first message is rarely the decision.
 On Rival Restaurants (2026-10-30) one thread about the buying step moved from "add a ranking" to
 "use bidding wars for conflicts" to "keep seat order and ask whoever missed again" across four
 messages; building after each one threw away two rounds of server, client and test work.
 
-So, whenever feedback touches how a phase works (what the player chooses, when they wait, what
-the tie-break is, which state asks what) rather than a plain bug or wording:
+The working loop the designer wants (James, 2026-10-31):
 
-1. Enter plan mode. Do not touch code yet.
-2. Lay out the two or three real options in a few lines each, with what each costs in
-   **player waits per day** (every MULTIPLE_ACTIVE_PLAYER state is a round where the slowest
-   player holds everyone), what it changes against the rulebook, and what it breaks that exists.
-3. Ask the clarifying questions in one go (what a word means to the designer, which rule they
-   are thinking of, whether a fairness mechanism is worth a wait).
-4. Get the decision, write it into the plan's decision list (D-numbers) with the date and the
-   reason, and only then build, test, deploy once.
+1. They ask how something works or why it feels wrong. Answer the question from the code and
+   the rulebook, in plain words, with evidence.
+2. Propose the solution: the two or three real options in a few lines each, with what each
+   costs in **player waits per day** (every MULTIPLE_ACTIVE_PLAYER state is a round where the
+   slowest player holds everyone), what it changes against the rulebook, what it breaks, and a
+   recommendation. Ask the clarifying questions in the same message.
+3. They decide. Record it in the plan's decision list (D-numbers) with the date and the reason.
+4. Build, test, deploy once. No need for a separate planning ceremony after the decision.
 
-Pure bugs, missing titles, highlights and copy go straight to code as before. The tell for
-"this is design, not polish" is that the fix changes a state's arguments, a transition or who is
-active.
+This applies when feedback touches how a phase works: what the player chooses, when they wait,
+what the tie-break is, which state asks what. The tell is that the fix changes a state's
+arguments, a transition or who is active. Pure bugs, missing titles, highlights and copy go
+straight to code. Do not start building on the first message of a design thread.
 
 ## Deploy discipline
 
