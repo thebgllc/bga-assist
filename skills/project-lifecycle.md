@@ -144,7 +144,17 @@ itself across multiple games:
 
 - **Phase 0 — Scaffolding.** Studio skeleton, git init, `docs/` started,
   `composer.json` + `phpunit.xml` + `tests/bootstrap.php`, directory
-  skeleton.
+  skeleton. **Put the game on the "BGA Games" board** (thebgllc project #5)
+  the day the repo is created. Nothing adds it automatically, and Rival
+  Restaurants went 11 days without a row. Two steps:
+  1. Add the repo name as an option on the project's **Game** field. Send
+     every existing option back with its `id`; without the ids, every
+     existing row loses its Game value.
+  2. Create a draft item titled with the repo name, body = the repo URL, and
+     set Game, Kind = Game, Stage = Not deployed, Status = Todo, Track, and
+     BGA name.
+  Then keep Stage, Whose move and Next step current as the game moves
+  toward alpha.
 - **Phase 1 — Core engine (+ tuning simulator, if the game needs one).**
   Build the game logic framework-free where possible, so a Monte Carlo
   simulator can drive it and expose every balance dial before any BGA UI
