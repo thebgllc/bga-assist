@@ -1,7 +1,8 @@
 # BGA UX/UI guidelines (official, v1.0.0, Oct 2025)
 
 Source: BGA's "Game Dev Guidelines — UX Use Case for Games on Board Game Arena" (Canva PDF,
-found at https://pdfhost.io/v/AuyAj7fGJz_BGA_-_Guidelines_UX_UI). Full copy:
+found at https://pdfhost.io/v/AuyAj7fGJz_BGA_-_Guidelines_UX_UI). Also live on the wiki as
+https://en.doc.boardgamearena.com/BGA_Studio_Guidelines (reviewers cite its section anchors). Full copy:
 `skills/reference/bga-ux-ui-guidelines-v1.0.0.pdf` (+ `.txt`). BGA uses it to judge
 ALPHA → BETA → RELEASE. Racetothebottom was declined twice on layout: audit against this
 before every public-alpha request.
