@@ -67,3 +67,38 @@ before every public-alpha request.
   `displayScoring` over the scoring element; length of the payoff scales with game length.
 - **Refresh**: everything, including highlights and selections, comes back from the server.
   No raw exceptions shown to players.
+
+## Lessons from our own reviews (Entropy, Racetothebottom, Byline — 2026-11)
+What BGA reviewers actually flagged, and the fixes that got the games through. Check every one
+before a public-alpha request.
+
+- **Cap the width on wide screens and centre it** (Entropy declined 2026-11-13, "no wide-screen
+  cap"). Give the game root a `max-width` equal to the main row's natural width (Entropy 1412 px,
+  Byline 1672 px) with `margin: 0 auto`. Measure at a 2560 px window: every band (offers, player
+  boards, tableaux) must stop where the board stops. A full-width band below a capped board is
+  the "detached band" a reviewer named.
+- **"Mobile = scaled desktop" is a finding.** James keeps `game_interface_width.min` at 740 (never
+  suggest lowering it), so BGA scales the layout by ~0.53 on a 390 px phone. Design touch targets
+  at **≥ 61 px at design size** to land at 32 px, and give touch/narrow screens their own
+  arrangement (one column, the hand inside empty board space, big tiles for tiny printed spaces).
+  Detect with `matchMedia('(pointer: coarse)')`, `body.mobile_version` or `innerWidth < 980`.
+- **Layouts that build different DOMs must follow a resize.** Deciding once in `setup()` leaves a
+  desktop window dragged narrow on the wrong layout. Listen to `resize`, debounce ~500 ms, and
+  reload when the choice flips (`getAllDatas` restores the state). Don't offer a layout or
+  art-crop preference to paper over a design call: choose automatically (Byline dropped both).
+- **No overlays for help.** A first-game primer or a rules reference opened as a full-screen
+  modal counts as a popup. Open it inline above the board (dismissible, "don't show again" in a
+  real user preference), and put the long-form rules and icon key on the `Gamehelp<game>` wiki
+  page (Entropy removed its in-game panels for that).
+- **Say why an action does nothing.** When a chosen action cannot start (can't pay, nothing left
+  to take, maxed out), warn at selection time ("can't pay" tag with Move anyway / Cancel) and log
+  a `fizzled` line when it resolves to nothing. Players filed "bugs" for silent fizzles.
+- **Painted-art hit regions cover the whole visual group.** When a header icon, its effect icons
+  and a column of spaces are printed in the art, one invisible zone should run the full column
+  (carrying the help tooltip), placed first in the DOM so the real spaces sit on top with their
+  own tooltips. A zone on the header alone makes hover flicker on and off down the column.
+- **Contrast**: player-name outlines and dark ink on dark backgrounds fail 3:1 easily; test
+  light and dark mode (`html.dark`).
+- **Measure, don't eyeball.** Use the headless preview harness (static UI preview: stub the
+  framework, render the real DOM + CSS) at 2560, 1536 and 900 px windows and read
+  `getBoundingClientRect()` of the bands and targets; screenshots alone missed every item above.
