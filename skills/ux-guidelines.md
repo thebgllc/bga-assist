@@ -68,7 +68,7 @@ before every public-alpha request.
 - **Refresh**: everything, including highlights and selections, comes back from the server.
   No raw exceptions shown to players.
 
-## Lessons from our own reviews (Entropy, Racetothebottom, Byline — 2026-11)
+## Lessons from our own reviews (Entropy, Racetothebottom, Byline, Oceans — 2026-11)
 What BGA reviewers actually flagged, and the fixes that got the games through. Check every one
 before a public-alpha request.
 
@@ -104,6 +104,35 @@ before a public-alpha request.
   and a column of spaces are printed in the art, one invisible zone should run the full column
   (carrying the help tooltip), placed first in the DOM so the real spaces sit on top with their
   own tooltips. A zone on the header alone makes hover flicker on and off down the column.
+- **No "web-app" chrome around the components** (Oceans declined 2026-11-24: "generic /
+  AI-generated-looking UI", "large framed sections, custom status blocks, heavy borders").
+  Drop the table-wide backdrop, bordered player boxes, filled header bars, pills and chips.
+  The board, boards and cards are the only solid things; the BGA page shows through. A player
+  row is a name, a colour rule and the components. Guideline A.1 allows only "spacers /
+  transparent whiteblocks" for grouping. Text that then sits on the page needs an ink variable
+  with a paper-coloured `text-shadow` halo, flipped under `html.dark`.
+- **A turn/phase tracker is a "custom status block".** The status bar already names the player
+  and the step. Keep at most one plain text line (current step bold), no pills, no player
+  colour fill.
+- **Per-player numbers go on the BGA player panels, once.** Hand size, bonus tokens and other
+  persistent counts repeated in a header on each player's row were flagged (A.3). Append one
+  compact line to `this.bga.playerPanels.getElement(pid)` and keep the row header to the name.
+- **A floating hand must stop at the end of the game area.** `position: fixed; bottom: 0` rides
+  over BGA's footer once the page is scrolled down or the board is short. `position: sticky`
+  does not work (BGA's `#overall-content` has `overflow: hidden`). Pattern that works: give the
+  hand a slot in the flow under the board; on `scroll`, `resize` and a `ResizeObserver`, add a
+  `.floating` class (fixed, left/width copied from the slot's rect) only while the slot's place
+  is below the window bottom, and set the slot's `min-height` to the hand's height. Skip
+  floating on short windows (under ~520 px tall).
+- **Keep fixed elements out of a container-query context.** `container-type` can make the
+  element the containing block for `position: fixed` children (browser-dependent). Put the
+  container on an inner wrapper and the hand/zoom overlay beside it; keep `data-state` and
+  delegated listeners on the outer element so descendant selectors still reach the hand.
+- **Hand = one row with its own sideways scroll, at every width.** Cards keep full size (E.3:
+  "add scrolling, don't shrink"). `flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden;
+  overscroll-behavior-x: contain; justify-content: safe center`, plus top padding for the
+  lifted-card hover. Dim off-turn cards with `filter`, not `opacity`: a floating hand is seen
+  through at 0.5.
 - **Contrast**: player-name outlines and dark ink on dark backgrounds fail 3:1 easily; test
   light and dark mode (`html.dark`).
 - **Measure, don't eyeball.** Use the headless preview harness (static UI preview: stub the
