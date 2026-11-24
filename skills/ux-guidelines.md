@@ -86,10 +86,17 @@ before a public-alpha request.
   desktop window dragged narrow on the wrong layout. Listen to `resize`, debounce ~500 ms, and
   reload when the choice flips (`getAllDatas` restores the state). Don't offer a layout or
   art-crop preference to paper over a design call: choose automatically (Byline dropped both).
-- **No overlays for help.** A first-game primer or a rules reference opened as a full-screen
-  modal counts as a popup. Open it inline above the board (dismissible, "don't show again" in a
-  real user preference), and put the long-form rules and icon key on the `Gamehelp<game>` wiki
-  page (Entropy removed its in-game panels for that).
+- **No rules or primer panels in the game area at all.** A first-game primer or rules reference
+  counts as a popup when it is a modal (Entropy), and is still declined when it opens inline above
+  the board (Byline declined 2026-11-24: "must be removed from the game area"). Rules go on the
+  `Gamehelp<game>` wiki page; the screen explains only the current situation and choice.
+- **Nothing appears over the board on hover.** Byline's hover strip that slid the cropped art down,
+  and its hover-zoomed side board, were both declined (2026-11-24). Enlarging is an explicit click
+  (zoom-in cursor, hover outline only) and happens in the element's own column, not over the board.
+  Keep status badges (clock, phase) in a band beside the board, not on it.
+- **Action bar titles state the choice, nothing else.** No rules, no "what happens next", no
+  "click X in your tray". Byline was declined for dense titles; split a prompt with 5+ buttons
+  into two steps and never use a disabled button as an information line.
 - **Say why an action does nothing.** When a chosen action cannot start (can't pay, nothing left
   to take, maxed out), warn at selection time ("can't pay" tag with Move anyway / Cancel) and log
   a `fizzled` line when it resolves to nothing. Players filed "bugs" for silent fizzles.
